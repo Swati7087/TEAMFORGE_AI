@@ -8,13 +8,30 @@ import { errorMiddleware, notFound } from "./middlewares/error.middleware.js";
 
 import authRoutes from "./routes/auth.routes.js";
 import userRoutes from "./routes/user.routes.js";
-// Other route imports get added here as each phase is built:
-// import projectRoutes from "./routes/project.routes.js";
-// etc.
+import projectRoutes from "./routes/project.routes.js";
+import teamRoutes from "./routes/team.routes.js";
+import taskRoutes from "./routes/task.routes.js";
 
 const app = express();
 
-app.use(cors({ origin: env.frontendUrl, credentials: true }));
+// FRONTEND_URL may be a comma-separated list so we can whitelist multiple
+// dev origins (e.g. 5173 + 5174 when Vite falls back to a spare port).
+const allowedOrigins = env.frontendUrl
+  .split(",")
+  .map((s) => s.trim())
+  .filter(Boolean);
+
+app.use(
+  cors({
+    origin: (origin, cb) => {
+      // Allow same-origin / server-to-server (no Origin header) and anything
+      // in the whitelist.
+      if (!origin || allowedOrigins.includes(origin)) return cb(null, true);
+      return cb(new Error(`CORS: origin ${origin} not allowed`));
+    },
+    credentials: true,
+  })
+);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
@@ -36,7 +53,9 @@ app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 
 app.use("/api/auth", authRoutes);
 app.use("/api/users", userRoutes);
-// app.use("/api/projects", projectRoutes);
+app.use("/api/projects", projectRoutes);
+app.use("/api/teams", teamRoutes);
+app.use("/api/tasks", taskRoutes);
 
 app.use(notFound);
 app.use(errorMiddleware);

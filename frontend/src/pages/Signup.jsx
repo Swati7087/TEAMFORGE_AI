@@ -36,7 +36,10 @@ export default function Signup() {
       await signupUser(name, email, password);
       navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.message || "Signup failed");
+      const serverMsg = err.response?.data?.message;
+      if (serverMsg) setError(serverMsg);
+      else if (err.message === "Network Error") setError("Can't reach the server. Is the backend running?");
+      else setError(err.message || "Signup failed");
     } finally {
       setSubmitting(false);
     }

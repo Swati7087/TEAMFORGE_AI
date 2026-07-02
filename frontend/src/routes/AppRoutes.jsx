@@ -5,6 +5,9 @@ import Signup from "../pages/Signup";
 import OAuthSuccess from "../pages/OAuthSuccess";
 import Dashboard from "../pages/Dashboard";
 import Profile from "../pages/Profile";
+import CreateProject from "../pages/CreateProject";
+import ProjectDetails from "../pages/ProjectDetails";
+import TaskBoard from "../pages/TaskBoard";
 import ProtectedRoute from "./ProtectedRoute";
 
 export default function AppRoutes() {
@@ -30,6 +33,30 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute>
             <Profile />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/projects/new"
+        element={
+          <ProtectedRoute>
+            <CreateProject />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/projects/:id"
+        element={
+          <ProtectedRoute>
+            <ProjectDetails />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/projects/:id/tasks"
+        element={
+          <ProtectedRoute>
+            <TaskBoard />
           </ProtectedRoute>
         }
       />

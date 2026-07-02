@@ -3,11 +3,11 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { success, failure } from "../utils/apiResponse.js";
 
 // GET /api/users
-// Minimal fields only — this is what the AI Team Matcher will query against.
+// Minimal fields for the invite dialog + AI Team Matcher.
 export const getUsers = asyncHandler(async (req, res) => {
   const users = await User.find(
     {},
-    "name skills experienceLevel availability profilePicture"
+    "name email skills experienceLevel availability profilePicture"
   );
   return success(res, 200, { users }, "Users list");
 });

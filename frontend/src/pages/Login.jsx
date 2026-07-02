@@ -24,7 +24,13 @@ export default function Login() {
       await loginUser(email, password);
       navigate("/dashboard");
     } catch (err) {
-      setError(err.response?.data?.message || "Login failed");
+      // Distinguish "server said no" (has response) from "request never
+      // reached the server" (CORS/network). Otherwise a wrong password and
+      // a dead backend look identical to the user.
+      const serverMsg = err.response?.data?.message;
+      if (serverMsg) setError(serverMsg);
+      else if (err.message === "Network Error") setError("Can't reach the server. Is the backend running?");
+      else setError(err.message || "Login failed");
     } finally {
       setSubmitting(false);
     }
