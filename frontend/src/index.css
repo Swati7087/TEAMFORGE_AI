@@ -1,0 +1,57 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  html,
+  body,
+  #root {
+    min-height: 100vh;
+  }
+  body {
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    background: #050508;
+    color: rgb(226 232 240);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+  }
+  h1,
+  h2,
+  h3,
+  h4 {
+    font-family: "Space Grotesk", "Inter", system-ui, sans-serif;
+    letter-spacing: -0.02em;
+  }
+
+  /* Keep dark-themed inputs from getting yellow-tinted by browser autofill */
+  input:-webkit-autofill,
+  input:-webkit-autofill:hover,
+  input:-webkit-autofill:focus {
+    -webkit-text-fill-color: #ffffff;
+    -webkit-box-shadow: 0 0 0 1000px rgba(255, 255, 255, 0.03) inset;
+    caret-color: #ffffff;
+    transition: background-color 5000s ease-in-out 0s;
+  }
+
+  ::selection {
+    background: rgba(74, 222, 128, 0.3);
+    color: #ffffff;
+  }
+
+  /* Subtle custom scrollbar */
+  ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+  }
+  ::-webkit-scrollbar-track {
+    background: #0a0a12;
+  }
+  ::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.08);
+    border-radius: 999px;
+  }
+  ::-webkit-scrollbar-thumb:hover {
+    background: rgba(74, 222, 128, 0.4);
+  }
+}

@@ -1,0 +1,1 @@
+// Skill gap prompt template.

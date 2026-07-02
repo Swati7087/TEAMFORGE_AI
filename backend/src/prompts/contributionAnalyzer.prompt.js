@@ -1,0 +1,1 @@
+// Contribution analyzer prompt template.

@@ -1,0 +1,1 @@
+// Contribution graph chart component.

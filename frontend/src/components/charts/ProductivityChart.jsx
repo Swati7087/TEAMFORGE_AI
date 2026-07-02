@@ -1,0 +1,1 @@
+// Productivity chart component.

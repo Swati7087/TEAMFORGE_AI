@@ -1,0 +1,1 @@
+// Conflict resolver prompt template.
