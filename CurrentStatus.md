@@ -375,3 +375,159 @@ To github.com:Swati7087/TEAMFORGE_AI.git
  * [new branch]      main -> main
 branch 'main' set up to track 'origin/main'.
 PS E:\teamforge_ai> 
+
+
+
+Session status — Phase 3 backend
+What I built and shipped (this session)
+New files
+
+backend/src/models/AIHistory.js — mongoose model with the 11 type enums (project-generation, task-breakdown, team-match, meeting-summary, readme, skill-gap, productivity-report, deadline-predict, conflict-resolver, risk-analysis, contribution-analysis), user + optional project refs, input/output/rawResponse/status/errorMessage, timestamps
+backend/src/prompts/projectGenerator.prompt.js — buildProjectGeneratorPrompt(idea) with strict-JSON schema and explicit "no markdown fences" instruction
+backend/src/prompts/taskBreakdown.prompt.js — buildTaskBreakdownPrompt(title, description, techStack) requesting 6–12 tasks as a strict JSON array
+backend/scripts/test-phase3.ps1 — full Phase 3 smoke test (2 users, generate-project shape check, generate-tasks shape check, non-member 403, cleanup)
+Modified files
+
+backend/src/services/gemini.service.js — added callGeminiJSON (calls Gemini, defensively strips ```json fences, JSON.parse, throws with .rawResponse attached on parse failure); added axios error-body capture so Google's real quota/error messages surface up; env-configurable model via GEMINI_MODEL; no key shape/prefix validation anywhere, only .trim()
+backend/src/controllers/ai.controller.js — generateProject (any logged-in user) and generateTasks (owner-or-member via the same getProjectById pattern); every call logs to AIHistory on success and on failure; failures return a clean 502 { success:false, message:"AI generation failed, please try again" } and never leak Gemini errors to the client
+backend/src/routes/ai.routes.js — mounts POST /generate-project + POST /generate-tasks, both behind protect
+backend/src/app.js — mounts aiRoutes at /api/ai
+backend/.env.example — documents the optional GEMINI_MODEL var
+Two real issues I hit and fixed on the way
+gemini-2.0-flash had limit: 0 free-tier quota on your account. Not a key problem — Google's ListModels returns dozens of models for your key, so it's fully valid. Switched default model to gemini-flash-latest (Google-maintained alias). You can override anytime with GEMINI_MODEL in .env.
+Your .env has a leading space on GEMINI_API_KEY= AQ.Ab8.... dotenv v17 trims it at load-time and I also .trim() in code, so it works. Recommend cleaning that up for hygiene, but it's not blocking.
+Tests
+backend/scripts/test-phase2.ps1 — 8/8 PASS (regression, no Phase 2 breakage)
+backend/scripts/test-phase3.ps1 — 18/18 PASS (includes field-shape assertions on generated project and first task in the breakdown)
+Both success and failure paths exercised live: during my debugging Gemini returned 429 and 404; in both cases the client saw a clean 502 with no stack trace leak — confirming the checklist's "temporarily break the key → clean error" requirement is implicitly satisfied
+Currently running (in this Cursor session)
+Backend — http://localhost:5000, nodemon watching, Mongo connected
+Frontend — http://localhost:5173, Vite dev server (browser tab opened)
+Not done yet
+Frontend Phase 3 wiring — the AI endpoints are backend-only right now; nothing in CreateProject.jsx or TaskBoard.jsx calls them yet. That's the next instruction set you said you'd send.
+No git commit — respecting your "no proactive commits" rule. All Phase 3 work is uncommitted on top of dbdeb60.
+GEMINI_MODEL override in your live .env — not needed because the default gemini-flash-latest works.
+Concrete new API surface (added to the doc's contract)
+POST /api/ai/generate-project    (Bearer, any user)
+  body:   { idea: string }
+  200:    { title, description, techStack[], features[], estimatedDifficulty, timeline, requiredRoles[] }
+  400:    idea missing/empty
+  502:    "AI generation failed, please try again"
+POST /api/ai/generate-tasks      (Bearer, owner or accepted member of the referenced project)
+  body:   { projectId: string }
+  200:    [ { title, description, difficulty, priority, estimatedTime, suggestedRole } ] (6-12 items)
+  400:    projectId missing
+  403:    not a member
+  404:    project not found
+  502:    "AI generation failed, please try again"
+
+
+Session status — where we're standing
+Phase 3 backend (done and verified)
+New files
+
+backend/src/models/AIHistory.js — audit-trail model with 11 type enums, user + optional project refs, input/output/rawResponse/status/errorMessage, timestamps
+backend/src/prompts/projectGenerator.prompt.js — buildProjectGeneratorPrompt(idea) with strict-JSON schema
+backend/src/prompts/taskBreakdown.prompt.js — buildTaskBreakdownPrompt(title, description, techStack) requesting 6–12 tasks
+backend/scripts/test-phase3.ps1 — the Phase-3 smoke test (2 users, generate-project + generate-tasks + non-member 403)
+Modified
+
+backend/src/services/gemini.service.js — added callGeminiJSON (calls Gemini, strips ```json fences defensively, JSON.parse, throws with .rawResponse attached on failure), axios error-body capture so Google's real quota/error messages surface, env-configurable model via GEMINI_MODEL, no key shape/prefix validation — only .trim()
+backend/src/controllers/ai.controller.js — generateProject (any user) + generateTasks (owner-or-member, mirrors your Phase-2 auth pattern). Every call logs to AIHistory on success and failure. Failures return a clean 502 { success:false, message:"AI generation failed, please try again" } — no stack traces ever leak
+backend/src/routes/ai.routes.js — mounts POST /generate-project + POST /generate-tasks behind protect
+backend/src/app.js — mounts aiRoutes at /api/ai
+backend/.env.example — documents optional GEMINI_MODEL
+backend/.env — cleaned the leading space in GEMINI_API_KEY=
+Live issues we fixed on the way
+
+gemini-2.0-flash returned limit: 0 on your free tier → switched default to gemini-flash-latest (Google-maintained alias). Confirmed real, working key by listing available models — 39 models returned.
+Leading space in .env value — cleaned; .trim() in the service is still there as belt-and-suspenders.
+Backend test results
+
+test-phase2.ps1: 8/8 PASS (regression)
+test-phase3.ps1: 18/18 PASS including field-shape assertions on both AI responses and the non-member 403
+Phase 3 frontend (done and running)
+New files
+
+frontend/src/api/ai.api.js — generateProject(idea) + generateTasks(projectId), envelope-peeling, errors intentionally surfaced
+frontend/src/components/ai/AIBreakdownDialog.jsx — hand-rolled Terminal Punk modal with per-task checkboxes, all pre-checked, select-all/none, sequential createTask loop with live "Adding N/M" progress, stops on first failure
+frontend/src/components/ai/AIBreakdownButton.jsx — self-contained widget that owns the button + loading state + toast + dialog; drop-in on any page
+Modified
+
+frontend/src/App.jsx — mounted <Toaster theme="dark" position="bottom-right" richColors> with a glass background
+frontend/src/pages/CreateProject.jsx — added AI-Assist section above the manual form (pink-tinted card, Sparkles icon, spinner while loading, pre-fills title/description/techStack/timeline on success, inline pink error + green success hint, sonner toasts on both paths)
+frontend/src/pages/TaskBoard.jsx — added <AIBreakdownButton /> next to the header
+frontend/src/pages/ProjectDetails.jsx — added <AIBreakdownButton /> on the Tasks tab (this was your live-testing catch — the standalone page had it but the tab didn't)
+New dependency
+
+sonner (~4kb) — the only added package
+Two UX fixes you caught during live testing
+
+Button was enabled for garbage like / → now enforces: trimmed length ≥ 10, must contain at least one 3+ letter alphabetic run.
+aftrgg 8uik o (real keyboard mash) still passed → added two heuristics: every word ≥ 3 letters must contain a vowel AND no word may have 4+ consecutive consonants (y counted as consonant). Reasoning shown live under the input with state-driven messages:
+Empty → gray "Write a short sentence…"
+Too short → amber "N more characters to unlock"
+No letters → amber "Add some real words…"
+Gibberish → amber "That doesn't look like a real project idea…"
+Valid → green "Looks good — hit Generate with AI"
+Live user-verified in your browser
+AI Assist section on /projects/new → generated AI-Powered Coding Study Buddy project scaffold ✅
+Project created, landed at /projects/:id ✅
+Tasks tab on /projects/:id — AI Breakdown button visible, generated 5 tasks that landed in the To Do column (screenshot) ✅
+Sonner toast styling matches Terminal Punk ✅
+Servers running right now
+Backend — http://localhost:5000, nodemon watching, Mongo connected, fresh env
+Frontend — http://localhost:5173, Vite HMR-updated every touched file
+Still not done
+No git commit yet — respecting your no-proactive-commits rule. Everything Phase-3 is uncommitted on top of dbdeb60 teamforge_phase2_completed
+Full frontend test-checklist walk-through — you've hit steps 1–4. Remaining: verify unchecking tasks in the breakdown dialog + confirming only the checked ones land on the board, and eyeballing the two new AIHistory documents in Compass
+Whatever Phase 4 becomes — analytics/recharts dashboard, per your original build order
+Milestone reached
+Your core AI differentiator — the thing that separates TeamForge AI from generic Trello/Jira — is now working end-to-end. A student can go from a one-line idea → AI-generated project scaffold → AI-suggested task breakdown → real tasks on the board, all in about 15 seconds and 3 clicks.
+
+Ping me when you want to commit, walk the remaining test steps, or roll into Phase 4.
+
+
+Phase 4 is done. Here's the full picture:
+
+What shipped
+Backend
+
+backend/src/controllers/dashboard.controller.js — getSummary (activeProjects, completed/pending tasks, upcoming deadlines within 7 days, tasksByStatus for the chart, recentProjects) + getProductivity (7 UTC-aligned daily buckets, gap-filled so quiet weeks still render a full week)
+backend/src/routes/dashboard.routes.js — mounted at /api/dashboard, both endpoints behind protect
+backend/src/prompts/productivityReport.prompt.js — buildProductivityReportPrompt(title, completed, pending, overdue) returning strict JSON schema
+backend/src/controllers/ai.controller.js — added generateProductivityReport (member-only, buckets tasks, calls callGeminiJSON, logs to AIHistory with type productivity-report, clean 502 on failure)
+backend/src/routes/ai.routes.js — added POST /api/ai/productivity-report
+backend/src/app.js — mounted dashboardRoutes
+Frontend
+
+frontend/src/api/dashboard.api.js — getDashboardSummary(), getProductivity()
+frontend/src/api/ai.api.js — added generateProductivityReport(projectId)
+frontend/src/pages/Dashboard.jsx — real stat cards (active projects / completed / pending / due-this-week), recharts donut for tasksByStatus with total in the center + legend, recharts line for last 7 days with a green→pink gradient stroke, Upcoming Deadlines widget with relative time and priority pills, project grid preserved. Colors match the Kanban columns: #4ade80 / #fbbf24 / #ec4899.
+frontend/src/components/ai/WeeklySummaryCard.jsx — hot-pink accent AI card with generate/regenerate button, sonner toasts, structured render of summary + highlights (green) + concerns (pink) + suggestedNextSteps (amber)
+frontend/src/pages/ProjectDetails.jsx — Overview tab now stacks About + Stats + WeeklySummaryCard vertically. Stats panel confirmed to read from the live tasks state via useTasks(id), so it updates immediately when tasks are added or dragged (no fetch race).
+Test results
+Ran test-phase4.ps1 end-to-end:
+
+== 1. GET /api/dashboard/summary as A ==     10/10 PASS
+== 2. GET /api/dashboard/productivity as A == 4/4 PASS
+== 3. POST /api/ai/productivity-report as A == 5/5 PASS  (Gemini responded cleanly)
+== 4. POST /api/ai/productivity-report as B (non-member) -> 403  PASS
+== 5. Cleanup deleteProject  PASS
+PHASE 4 CHECKS PASSED
+Also re-ran regressions:
+
+Phase 2: 8/8 pass — auth, team requests, task creation, delete permissions all clean
+Phase 3: generateTasks + all schema checks pass. generateProject returned 502 once — the backend log shows Google itself replied 503 UNAVAILABLE: "This model is currently experiencing high demand. Please try again later." My unchanged Phase 3 handler caught it, logged the real cause server-side, wrote a failed row to AIHistory, and surfaced a clean 502 to the client — exactly the contract. Not a regression from Phase 4; the same Gemini client happily served the Phase 4 Weekly Summary seconds earlier in the same run.
+
+
+
+
+
+
+
+
+
+
+
+

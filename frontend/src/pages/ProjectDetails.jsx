@@ -8,6 +8,7 @@ import * as teamApi from "../api/team.api";
 import KanbanBoard from "../components/task/KanbanBoard";
 import InviteMemberDialog from "../components/team/InviteMemberDialog";
 import AIBreakdownButton from "../components/ai/AIBreakdownButton";
+import WeeklySummaryCard from "../components/ai/WeeklySummaryCard";
 
 const STATUS_STYLE = {
   planning: {
@@ -303,51 +304,66 @@ export default function ProjectDetails() {
 
         {/* Tab content */}
         {tab === "overview" && (
-          <div className="grid gap-4 md:grid-cols-2">
-            <div className="bg-[#0a0a12]/40 backdrop-blur-md border border-white/[0.08] rounded-xl p-5">
-              <h3 className="text-[10px] font-bold tracking-[0.25em] uppercase text-green-300 mb-3">
-                About
-              </h3>
-              <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">
-                {project.description || (
-                  <span className="text-gray-600 italic">
-                    No description yet.
-                  </span>
-                )}
-              </p>
-            </div>
+          <div className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="bg-[#0a0a12]/40 backdrop-blur-md border border-white/[0.08] rounded-xl p-5">
+                <h3 className="text-[10px] font-bold tracking-[0.25em] uppercase text-green-300 mb-3">
+                  About
+                </h3>
+                <p className="text-sm text-gray-300 leading-relaxed whitespace-pre-line">
+                  {project.description || (
+                    <span className="text-gray-600 italic">
+                      No description yet.
+                    </span>
+                  )}
+                </p>
+              </div>
 
-            <div className="bg-[#0a0a12]/40 backdrop-blur-md border border-white/[0.08] rounded-xl p-5">
-              <h3 className="text-[10px] font-bold tracking-[0.25em] uppercase text-pink-300 mb-3">
-                Stats
-              </h3>
-              <div className="grid grid-cols-3 gap-3 text-center">
-                <div>
-                  <div className="text-2xl font-bold text-white">
-                    {tasks.filter((t) => t.status === "todo").length}
-                  </div>
-                  <div className="text-[10px] text-green-300 tracking-wider uppercase mt-1">
-                    To Do
-                  </div>
+              {/* Stats — pulls live counts from the `tasks` state supplied by
+                  useTasks(id). This state auto-updates whenever a task is
+                  created / dragged / deleted, so the numbers stay in sync
+                  with the Kanban board across the same session. */}
+              <div className="bg-[#0a0a12]/40 backdrop-blur-md border border-white/[0.08] rounded-xl p-5">
+                <div className="flex items-center justify-between mb-3">
+                  <h3 className="text-[10px] font-bold tracking-[0.25em] uppercase text-pink-300">
+                    Stats
+                  </h3>
+                  <span className="text-[9px] text-gray-600 tracking-[0.2em] uppercase">
+                    {tasks.length} total
+                  </span>
                 </div>
-                <div>
-                  <div className="text-2xl font-bold text-white">
-                    {tasks.filter((t) => t.status === "in-progress").length}
+                <div className="grid grid-cols-3 gap-3 text-center">
+                  <div>
+                    <div className="text-2xl font-bold text-white">
+                      {tasks.filter((t) => t.status === "todo").length}
+                    </div>
+                    <div className="text-[10px] text-green-300 tracking-wider uppercase mt-1">
+                      To Do
+                    </div>
                   </div>
-                  <div className="text-[10px] text-amber-300 tracking-wider uppercase mt-1">
-                    Doing
+                  <div>
+                    <div className="text-2xl font-bold text-white">
+                      {tasks.filter((t) => t.status === "in-progress").length}
+                    </div>
+                    <div className="text-[10px] text-amber-300 tracking-wider uppercase mt-1">
+                      Doing
+                    </div>
                   </div>
-                </div>
-                <div>
-                  <div className="text-2xl font-bold text-white">
-                    {tasks.filter((t) => t.status === "done").length}
-                  </div>
-                  <div className="text-[10px] text-pink-300 tracking-wider uppercase mt-1">
-                    Done
+                  <div>
+                    <div className="text-2xl font-bold text-white">
+                      {tasks.filter((t) => t.status === "done").length}
+                    </div>
+                    <div className="text-[10px] text-pink-300 tracking-wider uppercase mt-1">
+                      Done
+                    </div>
                   </div>
                 </div>
               </div>
             </div>
+
+            {(isOwner || isMember) && (
+              <WeeklySummaryCard projectId={id} />
+            )}
           </div>
         )}
 

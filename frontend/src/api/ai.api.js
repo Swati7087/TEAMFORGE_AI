@@ -18,3 +18,10 @@ export async function generateTasks(projectId) {
   const res = await axiosClient.post("/api/ai/generate-tasks", { projectId });
   return res.data.data;
 }
+
+export async function generateProductivityReport(projectId) {
+  const res = await axiosClient.post("/api/ai/productivity-report", {
+    projectId,
+  });
+  return res.data.data;
+}
