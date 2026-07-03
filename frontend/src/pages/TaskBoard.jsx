@@ -3,6 +3,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useProject } from "../hooks/useProjects";
 import { useTasks } from "../hooks/useTasks";
 import KanbanBoard from "../components/task/KanbanBoard";
+import AIBreakdownButton from "../components/ai/AIBreakdownButton";
 
 // Focused full-screen Kanban view. Same board as the /projects/:id "Tasks"
 // tab, just chrome-lite so it doesn't compete with the cards visually.
@@ -26,6 +27,7 @@ export default function TaskBoard() {
   const isMember = project?.members?.some(
     (m) => String(m._id || m) === String(currentUserId)
   );
+  const canBreakdown = Boolean(isOwner || isMember);
 
   if (loading) {
     return (
@@ -69,10 +71,16 @@ export default function TaskBoard() {
           </span>
         </div>
 
-        <h1 className="text-2xl font-bold mb-6">
-          <span className="text-gray-500 font-normal">Board · </span>
-          {project.title}
-        </h1>
+        <div className="flex items-center justify-between gap-4 mb-6 flex-wrap">
+          <h1 className="text-2xl font-bold">
+            <span className="text-gray-500 font-normal">Board · </span>
+            {project.title}
+          </h1>
+
+          {canBreakdown && (
+            <AIBreakdownButton projectId={id} onCreateTask={createTask} />
+          )}
+        </div>
 
         {!isOwner && !isMember ? (
           <div className="bg-[#0a0a12]/40 backdrop-blur-md border border-white/[0.08] rounded-xl p-8 text-center">

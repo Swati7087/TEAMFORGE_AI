@@ -242,3 +242,136 @@ GET    /api/health                                              → { status: "o
 > "Do you want me to commit the outstanding Phase 2 work (backend + frontend + atomicWrite) as one commit before we start Phase 3?"
 
 Everything else in Phase 3 should follow the same rhythm: user sends single-message instruction set → I follow it precisely → verify with tests → summary at the end.
+
+-------------------------------------------------------------------
+
+Also this is what i did in vscode after all this - 
+
+PS E:\teamforge_ai> git init
+Reinitialized existing Git repository in E:/teamforge_ai/.git/
+PS E:\teamforge_ai> git commit -m "first commit"
+On branch master
+Changes not staged for commit:
+  (use "git add <file>..." to update what will be committed)
+  (use "git restore <file>..." to discard changes in working directory)
+        modified:   backend/.env.example
+        modified:   backend/src/app.js
+        modified:   backend/src/controllers/project.controller.js
+        modified:   backend/src/controllers/task.controller.js
+        modified:   backend/src/controllers/team.controller.js
+        modified:   backend/src/controllers/user.controller.js
+        modified:   backend/src/models/Project.js
+        modified:   backend/src/models/Task.js
+        modified:   backend/src/models/Team.js
+        modified:   backend/src/routes/project.routes.js
+        modified:   backend/src/routes/task.routes.js
+        modified:   backend/src/routes/team.routes.js
+        modified:   frontend/index.html
+        modified:   frontend/package-lock.json
+        modified:   frontend/package.json
+        modified:   frontend/src/api/project.api.js
+        modified:   frontend/src/api/task.api.js
+        modified:   frontend/src/components/task/KanbanBoard.jsx
+        modified:   frontend/src/components/task/KanbanColumn.jsx
+        modified:   frontend/src/components/task/TaskCard.jsx
+        modified:   frontend/src/hooks/useProjects.js
+        modified:   frontend/src/hooks/useTasks.js
+        modified:   frontend/src/index.css
+        modified:   frontend/src/pages/CreateProject.jsx
+        modified:   frontend/src/pages/Dashboard.jsx
+        modified:   frontend/src/pages/Login.jsx
+        modified:   frontend/src/pages/ProjectDetails.jsx
+        modified:   frontend/src/pages/Signup.jsx
+        modified:   frontend/src/pages/TaskBoard.jsx
+        modified:   frontend/src/routes/AppRoutes.jsx
+        modified:   frontend/tailwind.config.js
+
+Untracked files:
+  (use "git add <file>..." to include in what will be committed)
+        CurrentStatus.md
+        backend/scripts/
+        backend/src/utils/atomicWrite.js
+        frontend/components.json
+        frontend/src/api/team.api.js
+        frontend/src/api/user.api.js
+        frontend/src/components/task/TaskDialog.jsx
+        frontend/src/components/team/InviteMemberDialog.jsx
+        frontend/src/components/ui/avatar.jsx
+        frontend/src/components/ui/badge.jsx
+        frontend/src/components/ui/button.jsx
+        frontend/src/components/ui/dialog.jsx
+        frontend/src/components/ui/dropdown-menu.jsx
+        frontend/src/components/ui/select.jsx
+        frontend/src/lib/
+
+no changes added to commit (use "git add" and/or "git commit -a")
+PS E:\teamforge_ai> git add .
+warning: in the working copy of 'backend/src/app.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/controllers/project.controller.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/controllers/task.controller.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/controllers/team.controller.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/controllers/user.controller.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/models/Project.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/models/Task.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/models/Team.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/routes/project.routes.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/routes/task.routes.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/routes/team.routes.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/index.html', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/package-lock.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/package.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/api/project.api.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/api/task.api.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/components/task/KanbanBoard.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/components/task/KanbanColumn.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/components/task/TaskCard.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/hooks/useProjects.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/hooks/useTasks.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/index.css', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/pages/CreateProject.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/pages/Dashboard.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/pages/Login.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/pages/ProjectDetails.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/pages/Signup.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/pages/TaskBoard.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/routes/AppRoutes.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/tailwind.config.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/scripts/test-phase2.ps1', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'backend/src/utils/atomicWrite.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/components.json', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/api/team.api.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/api/user.api.js', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/components/task/TaskDialog.jsx', LF will be replaced by CRLF the next time Git touches it
+warning: in the working copy of 'frontend/src/components/team/InviteMemberDialog.jsx', LF will be replaced by CRLF the next time Git touches it
+PS E:\teamforge_ai> git commit -m "teamforge_phase2_completed"
+[master dbdeb60] teamforge_phase2_completed
+ 46 files changed, 9226 insertions(+), 387 deletions(-)
+ create mode 100644 CurrentStatus.md
+ create mode 100644 backend/scripts/test-phase2.ps1
+ create mode 100644 backend/src/utils/atomicWrite.js
+ create mode 100644 frontend/components.json
+ create mode 100644 frontend/src/api/team.api.js
+ create mode 100644 frontend/src/api/user.api.js
+ create mode 100644 frontend/src/components/task/TaskDialog.jsx
+ create mode 100644 frontend/src/components/team/InviteMemberDialog.jsx
+ create mode 100644 frontend/src/components/ui/avatar.jsx
+ create mode 100644 frontend/src/components/ui/badge.jsx
+ create mode 100644 frontend/src/components/ui/button.jsx
+ create mode 100644 frontend/src/components/ui/dialog.jsx
+ create mode 100644 frontend/src/components/ui/dropdown-menu.jsx
+ create mode 100644 frontend/src/components/ui/select.jsx
+ create mode 100644 frontend/src/lib/utils.js
+PS E:\teamforge_ai> git branch -M main
+PS E:\teamforge_ai> git remote add origin git@github.com:Swati7087/TEAMFORGE_AI.git
+PS E:\teamforge_ai> git push -u origin main
+Enumerating objects: 220, done.
+Counting objects: 100% (220/220), done.
+Delta compression using up to 18 threads
+Compressing objects: 100% (148/148), done.
+Writing objects: 100% (220/220), 167.21 KiB | 1.17 MiB/s, done.
+Total 220 (delta 27), reused 0 (delta 0), pack-reused 0 (from 0)
+remote: Resolving deltas: 100% (27/27), done.
+To github.com:Swati7087/TEAMFORGE_AI.git
+ * [new branch]      main -> main
+branch 'main' set up to track 'origin/main'.
+PS E:\teamforge_ai> 

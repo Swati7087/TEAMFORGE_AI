@@ -7,6 +7,7 @@ import * as projectApi from "../api/project.api";
 import * as teamApi from "../api/team.api";
 import KanbanBoard from "../components/task/KanbanBoard";
 import InviteMemberDialog from "../components/team/InviteMemberDialog";
+import AIBreakdownButton from "../components/ai/AIBreakdownButton";
 
 const STATUS_STYLE = {
   planning: {
@@ -475,16 +476,24 @@ export default function ProjectDetails() {
                 </p>
               </div>
             ) : (
-              <KanbanBoard
-                tasks={tasks}
-                members={project.members || []}
-                currentUserId={currentUserId}
-                ownerId={ownerId}
-                onMoveTask={moveTask}
-                onCreateTask={createTask}
-                onUpdateTask={updateTask}
-                onDeleteTask={deleteTask}
-              />
+              <>
+                <div className="flex items-center justify-between gap-4 mb-4 flex-wrap">
+                  <span className="text-[10px] text-gray-600 tracking-[0.25em] uppercase">
+                    {tasks.length} task{tasks.length === 1 ? "" : "s"}
+                  </span>
+                  <AIBreakdownButton projectId={id} onCreateTask={createTask} />
+                </div>
+                <KanbanBoard
+                  tasks={tasks}
+                  members={project.members || []}
+                  currentUserId={currentUserId}
+                  ownerId={ownerId}
+                  onMoveTask={moveTask}
+                  onCreateTask={createTask}
+                  onUpdateTask={updateTask}
+                  onDeleteTask={deleteTask}
+                />
+              </>
             )}
           </div>
         )}
