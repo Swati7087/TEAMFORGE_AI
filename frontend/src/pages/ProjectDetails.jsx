@@ -9,6 +9,7 @@ import KanbanBoard from "../components/task/KanbanBoard";
 import InviteMemberDialog from "../components/team/InviteMemberDialog";
 import AIBreakdownButton from "../components/ai/AIBreakdownButton";
 import WeeklySummaryCard from "../components/ai/WeeklySummaryCard";
+import GitHubTab from "../components/github/GitHubTab";
 
 const STATUS_STYLE = {
   planning: {
@@ -29,6 +30,7 @@ const TABS = [
   { id: "overview", label: "Overview" },
   { id: "team", label: "Team" },
   { id: "tasks", label: "Tasks" },
+  { id: "github", label: "GitHub" },
 ];
 
 export default function ProjectDetails() {
@@ -512,6 +514,14 @@ export default function ProjectDetails() {
               </>
             )}
           </div>
+        )}
+
+        {tab === "github" && (
+          <GitHubTab
+            projectId={id}
+            isOwner={isOwner}
+            isMember={isMember}
+          />
         )}
       </div>
 

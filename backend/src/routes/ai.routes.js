@@ -20,6 +20,7 @@ import {
   generateProject,
   generateTasks,
   generateProductivityReport,
+  generateContributionAnalysis,
 } from "../controllers/ai.controller.js";
 
 const router = express.Router();
@@ -29,5 +30,6 @@ router.use(protect);
 router.post("/generate-project", generateProject);
 router.post("/generate-tasks", generateTasks);
 router.post("/productivity-report", generateProductivityReport);
+router.post("/contribution-analysis", generateContributionAnalysis);
 
 export default router;

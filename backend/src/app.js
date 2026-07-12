@@ -13,6 +13,8 @@ import teamRoutes from "./routes/team.routes.js";
 import taskRoutes from "./routes/task.routes.js";
 import aiRoutes from "./routes/ai.routes.js";
 import dashboardRoutes from "./routes/dashboard.routes.js";
+import githubRoutes from "./routes/github.routes.js";
+import contributionRoutes from "./routes/contribution.routes.js";
 
 const app = express();
 
@@ -60,6 +62,8 @@ app.use("/api/teams", teamRoutes);
 app.use("/api/tasks", taskRoutes);
 app.use("/api/ai", aiRoutes);
 app.use("/api/dashboard", dashboardRoutes);
+app.use("/api/github", githubRoutes);
+app.use("/api/contributions", contributionRoutes);
 
 app.use(notFound);
 app.use(errorMiddleware);
