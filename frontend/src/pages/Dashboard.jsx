@@ -101,6 +101,22 @@ export default function Dashboard() {
               <span className="w-1.5 h-1.5 rounded-full bg-green-400 shadow-[0_0_6px_rgba(74,222,128,0.8)]" />
               {user?.email}
             </div>
+            <Link
+              to="/profile"
+              title="Your profile"
+              aria-label="Go to your profile"
+              className="w-9 h-9 rounded-full bg-gradient-to-br from-green-500/40 to-pink-500/40 border border-white/10 flex items-center justify-center text-sm font-bold text-white hover:shadow-[0_0_20px_rgba(236,72,153,0.35)] hover:border-pink-400/40 transition-all shrink-0 overflow-hidden"
+            >
+              {user?.profilePicture ? (
+                <img
+                  src={user.profilePicture}
+                  alt=""
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                user?.name?.charAt(0)?.toUpperCase() || "?"
+              )}
+            </Link>
             <button
               onClick={logout}
               className="text-xs font-medium text-gray-300 hover:text-white border border-white/10 bg-white/[0.02] hover:bg-white/[0.06] rounded-lg px-3 py-1.5 transition-all duration-200"

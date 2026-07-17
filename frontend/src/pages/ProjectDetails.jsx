@@ -7,8 +7,11 @@ import * as projectApi from "../api/project.api";
 import * as teamApi from "../api/team.api";
 import KanbanBoard from "../components/task/KanbanBoard";
 import InviteMemberDialog from "../components/team/InviteMemberDialog";
+import TeamMatcherPanel from "../components/team/TeamMatcherPanel";
+import SkillGapPanel from "../components/team/SkillGapPanel";
 import AIBreakdownButton from "../components/ai/AIBreakdownButton";
 import WeeklySummaryCard from "../components/ai/WeeklySummaryCard";
+import ReadmeGeneratorCard from "../components/ai/ReadmeGeneratorCard";
 import GitHubTab from "../components/github/GitHubTab";
 
 const STATUS_STYLE = {
@@ -50,6 +53,7 @@ export default function ProjectDetails() {
   const [team, setTeam] = useState(null);
   const [showInvite, setShowInvite] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
   const [flash, setFlash] = useState(null);
 
   const currentUserId = user?._id || user?.id;
@@ -364,13 +368,57 @@ export default function ProjectDetails() {
             </div>
 
             {(isOwner || isMember) && (
-              <WeeklySummaryCard projectId={id} />
+              <WeeklySummaryCard
+                projectId={id}
+                disabled={aiLoading}
+                onLoadingChange={setAiLoading}
+              />
+            )}
+
+            {(isOwner || isMember) && (
+              <div className="grid gap-4 md:grid-cols-2">
+                <ReadmeGeneratorCard
+                  projectId={id}
+                  projectTitle={project.title}
+                  disabled={aiLoading}
+                  onLoadingChange={setAiLoading}
+                />
+                <div className="bg-[#0a0a12]/40 backdrop-blur-md border border-white/[0.08] rounded-xl p-5 flex flex-col justify-between">
+                  <div>
+                    <h3 className="text-[10px] font-bold tracking-[0.25em] uppercase text-amber-300 mb-1">
+                      Meeting Assistant
+                    </h3>
+                    <p className="text-[11px] text-gray-500 mb-4">
+                      Paste raw sync notes and get structured summaries with
+                      action items attributed to your team.
+                    </p>
+                  </div>
+                  <Link
+                    to={`/projects/${id}/meetings`}
+                    className="self-start text-xs font-semibold tracking-wider uppercase text-white px-3.5 py-2 rounded-lg border border-amber-400/40 bg-amber-500/10 hover:bg-amber-500/20 hover:shadow-[0_0_25px_rgba(251,191,36,0.35)] transition-all"
+                  >
+                    Open meeting notes →
+                  </Link>
+                </div>
+              </div>
             )}
           </div>
         )}
 
         {tab === "team" && (
           <div className="space-y-4">
+            {isOwner && (
+              <TeamMatcherPanel
+                projectId={id}
+                onInvited={() => {
+                  loadTeam();
+                  showFlash("Invite sent", "info");
+                }}
+              />
+            )}
+
+            {(isOwner || isMember) && <SkillGapPanel projectId={id} />}
+
             {/* Owner + accepted members */}
             <div className="bg-[#0a0a12]/40 backdrop-blur-md border border-white/[0.08] rounded-xl p-5">
               <h3 className="text-[10px] font-bold tracking-[0.25em] uppercase text-green-300 mb-4">

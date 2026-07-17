@@ -29,6 +29,7 @@ export const updateUser = asyncHandler(async (req, res) => {
   }
 
   const allowed = [
+    "name",
     "bio",
     "skills",
     "experienceLevel",
@@ -36,11 +37,22 @@ export const updateUser = asyncHandler(async (req, res) => {
     "githubProfile",
     "linkedinProfile",
     "profilePicture",
+    "phone",
+    "organization",
+    "organizationType",
   ];
 
   const updates = {};
   for (const key of allowed) {
     if (req.body[key] !== undefined) updates[key] = req.body[key];
+  }
+
+  if (typeof updates.bio === "string" && updates.bio.length > 300) {
+    return failure(res, 400, "Bio must be 300 characters or fewer");
+  }
+
+  if (typeof updates.name === "string" && !updates.name.trim()) {
+    return failure(res, 400, "Name cannot be empty");
   }
 
   // runValidators: true is critical — without it, enum checks are skipped on update.

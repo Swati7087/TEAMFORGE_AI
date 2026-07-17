@@ -33,6 +33,48 @@ function getKey() {
   return raw.trim();
 }
 
+function buildGeminiError(axiosErr) {
+  const status = axiosErr?.response?.status;
+  const body = axiosErr?.response?.data;
+  const bodyText =
+    typeof body === "string" ? body : JSON.stringify(body ?? null);
+  const err = new Error(
+    status
+      ? `Gemini API error ${status}: ${bodyText?.slice(0, 300) || axiosErr.message}`
+      : `Gemini API network error: ${axiosErr.message}`
+  );
+  err.rawResponse = bodyText || "";
+  err.status = status || null;
+  return err;
+}
+
+// User-facing message for API failures — avoids burying quota/key issues
+// behind a generic "please try again".
+export function geminiUserMessage(err) {
+  if (!err) return "AI generation failed, please try again";
+  if (err.message?.includes("GEMINI_API_KEY is not set")) {
+    return "AI is not configured — GEMINI_API_KEY is missing on the server.";
+  }
+  if (err.status === 429) {
+    const raw = String(err.rawResponse || "");
+    if (raw.includes("limit: 0")) {
+      const model = getModel();
+      return `This model has no free-tier quota on your account (${model}). Set GEMINI_MODEL=gemini-flash-lite-latest in backend/.env and restart the server.`;
+    }
+    if (raw.includes("PerDay") || raw.includes("per day")) {
+      return "Gemini free daily quota used up (~20 requests/day). Wait until tomorrow, or set GEMINI_MODEL to a different model in backend/.env.";
+    }
+    return "Gemini rate limit reached — wait about 60 seconds, then try one feature at a time.";
+  }
+  if (err.status === 503 || String(err.rawResponse || "").includes("high demand")) {
+    return "Gemini is busy right now — wait a minute and try again, or set GEMINI_MODEL=gemini-flash-lite-latest in backend/.env.";
+  }
+  if (err.status === 401 || err.status === 403) {
+    return "Gemini API key is invalid or unauthorized — check GEMINI_API_KEY.";
+  }
+  return "AI generation failed, please try again";
+}
+
 export async function callGemini(promptText) {
   const key = getKey();
   if (!key) {
@@ -44,24 +86,12 @@ export async function callGemini(promptText) {
     res = await axios.post(
       `${getEndpoint()}?key=${encodeURIComponent(key)}`,
       { contents: [{ parts: [{ text: promptText }] }] },
-      { timeout: 60000, headers: { "Content-Type": "application/json" } }
+      { timeout: 90000, headers: { "Content-Type": "application/json" } }
     );
   } catch (axiosErr) {
-    // Surface Google's response body (quota message, invalid-key message,
-    // etc.) up the stack via .rawResponse so the controller can log/persist
-    // it. axios wraps non-2xx in an error and buries the useful body in
-    // err.response.data — pull it forward.
-    const status = axiosErr?.response?.status;
-    const body = axiosErr?.response?.data;
-    const bodyText = typeof body === "string" ? body : JSON.stringify(body ?? null);
-    const err = new Error(
-      status
-        ? `Gemini API error ${status}: ${bodyText?.slice(0, 300) || axiosErr.message}`
-        : `Gemini API network error: ${axiosErr.message}`
-    );
-    err.rawResponse = bodyText || "";
-    err.status = status || null;
-    throw err;
+    // Fail fast on 429 — Google often says "retry in ~60s" which leaves the
+    // UI spinning for minutes if we auto-retry. Tell the user immediately.
+    throw buildGeminiError(axiosErr);
   }
 
   const text = res?.data?.candidates?.[0]?.content?.parts?.[0]?.text;

@@ -7,6 +7,7 @@ import Dashboard from "../pages/Dashboard";
 import Profile from "../pages/Profile";
 import CreateProject from "../pages/CreateProject";
 import ProjectDetails from "../pages/ProjectDetails";
+import MeetingNotes from "../pages/MeetingNotes";
 import TaskBoard from "../pages/TaskBoard";
 import ProtectedRoute from "./ProtectedRoute";
 
@@ -49,6 +50,14 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute>
             <ProjectDetails />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/projects/:id/meetings"
+        element={
+          <ProtectedRoute>
+            <MeetingNotes />
           </ProtectedRoute>
         }
       />

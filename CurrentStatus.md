@@ -521,8 +521,246 @@ Phase 2: 8/8 pass — auth, team requests, task creation, delete permissions all
 Phase 3: generateTasks + all schema checks pass. generateProject returned 502 once — the backend log shows Google itself replied 503 UNAVAILABLE: "This model is currently experiencing high demand. Please try again later." My unchanged Phase 3 handler caught it, logged the real cause server-side, wrote a failed row to AIHistory, and surfaced a clean 502 to the client — exactly the contract. Not a regression from Phase 4; the same Gemini client happily served the Phase 4 Weekly Summary seconds earlier in the same run.
 
 
+LAST SUMMARY - 
+
+TeamForge AI — Full Summary (Everything Done So Far)
+What it is
+TeamForge AI is a monorepo app for coding students to plan projects, form teams, manage tasks with a Kanban board, and use AI across the project lifecycle — styled in Terminal Punk (dark #050508, neon green / hot pink / amber).
+
+e:\teamforge_ai\
+├── backend/   Node.js + Express + Mongoose (ESM)
+└── frontend/  React 19 + Vite 6 + Tailwind v3 + dnd-kit
+Repo: github.com/Swati7087/TEAMFORGE_AI — main synced, latest commit e2dde5c
+
+Phase-by-phase — what's built
+Phase 1 — Auth + User Profile ✅
+JWT signup/login, Google OAuth scaffold (needs creds in .env)
+User profile (skills, experience, availability, githubProfile)
+AuthContext, protected routes
+Pages: Landing, Login, Signup, Dashboard, Profile
+Terminal Punk theme + interactive cube on Landing
+Phase 2 — Project / Team / Task ✅
+Full CRUD for projects, teams (invite/request/accept), tasks
+Kanban board with drag-and-drop (todo → in-progress → done)
+Owner vs member auth throughout
+atomicWrite helper (transaction fallback on standalone MongoDB)
+test-phase2.ps1 — 8/8 pass
+Phase 3 — AI Project Generator + Task Breakdown ✅
+POST /api/ai/generate-project — idea → project scaffold
+POST /api/ai/generate-tasks — AI task breakdown
+AIHistory audit trail for every AI call
+Frontend: AI Assist on CreateProject, AIBreakdownButton + selective task dialog
+Gibberish validation on project ideas
+test-phase3.ps1 — pass
+Phase 4 — Dashboard Analytics ✅
+Summary stats, tasks-by-status donut chart, 7-day productivity line chart
+Upcoming deadlines widget
+WeeklySummaryCard — AI weekly recap per project
+test-phase4.ps1 — pass
+Phase 5 — GitHub Integration + AI Contribution Analyzer ✅ (just committed & pushed)
+Sub-phase	What shipped
+5a
+Encrypted PAT storage (AES-256-CBC), connect/fetch/disconnect APIs, test-phase5a.ps1
+5b
+Connect GitHub UI, commits/PRs/contributors/issues tabs, Sync now
+5c
+⭐ USP — Gemini interprets who worked on what from real commit history + file paths
+You verified this live: Swati7087 → frontend, backend, AI-integration, testing tags + natural-language summary.
+
+End-to-end flows that work today
+Sign up → create project → AI-generate scaffold → create project
+AI task breakdown → selective add → Kanban board → drag between columns
+Dashboard analytics + AI weekly summary
+Connect GitHub repo → view commits/PRs → AI contribution analysis
+Git history
+Commit	Phase
+c3a4af4
+Phase 1 — auth + profile
+dbdeb60
+Phase 2 — project/team/task + Kanban
+31cc7ea
+Phase 3 — AI generator
+6681f68
+Phase 4 — dashboard analytics
+e2dde5c
+Phase 5 — GitHub + contribution analyzer
+Conventions locked in
+Phased builds only — no freelancing ahead
+Terminal Punk palette (green = todo/go, amber = in-progress, pink = done/high priority)
+Hand-rolled modals (Shadcn v4 utilities don't work on Tailwind v3)
+API envelope: { success, message, data } — frontend peels .data
+PowerShell on Windows; dev port 5174 when 5173 is busy
+Commits only when you ask (Phase 5 just landed on GitHub)
+Known deferred (not blockers)
+Google OAuth — no creds yet
+MongoDB standalone — no real transactions (fallback works)
+user.id vs user._id minor inconsistency in auth responses
+Tailwind v4 migration — deferred until animated Shadcn dialogs are needed
+What's left (original plan)
+Phase	Features
+6a
+Team Matcher, Skill Gap Detector
+6b
+Meeting Assistant, README Generator
+6c
+Bottleneck, Deadline Predictor, Risk Analyzer
+6d
+Conflict Resolver, Duplicate Work, Sprint Planner
+7
+AI Engineering Manager (chat Q&A over all project data)
+All Phase 6 features follow the same pattern you've built four times: prompt → callGeminiJSON → controller → route → frontend UI.
+
+Bottom line
+You have a working student project-management app with auth, teams, Kanban, multiple AI features, dashboard analytics, live GitHub integration, and the standout AI Contribution Analyzer — all committed, pushed, and browser-verified.
+
+Next up when you're ready: Phase 6a (Team Matcher + Skill Gap Detector).
 
 
+TeamForge AI — Today's Session Handoff (Jul 12, 2026)
+Paste this into a new agent tab to resume without context loss.
+
+Project
+Repo: e:\teamforge_ai\ — Node/Express/Mongoose backend + React 19/Vite/Tailwind frontend
+Theme: Terminal Punk (#050508, green/amber/pink)
+Git: Last pushed commit e2dde5c — "Phase 5: GitHub integration and AI contribution analyzer"
+Uncommitted since then: Phase 6a fixes, Phase 6b, full Profile page, Gemini error-handling UX, GEMINI_MODEL in .env
+What we completed TODAY
+Phase 6a — Team Matcher + Skill Gap (finished + fixed)
+Problem fixed: Team Matcher ranked candidates who duplicated existing team skills higher than gap-fillers (e.g. DevOps candidate ranked below React duplicate).
+
+Fix:
+
+backend/src/controllers/ai.controller.js — added computeTeamSkillCoverage(), skillsOverlap(), gapFillPrefilterScore() before Gemini prompt
+backend/src/prompts/teamMatcher.prompt.js — passes alreadyCovered + missingSkills explicitly; CRITICAL SCORING RULE + few-shot example (DevOps ~90 vs React duplicate ~40)
+Pre-filter penalizes duplicate skills (−3), rewards gap-fillers (+5 per missing skill)
+Frontend (6a):
+
+TeamMatcherPanel.jsx — Find Matches + Invite on Team tab
+SkillGapPanel.jsx — missing/covered chips on Team tab
+Tests: backend/scripts/test-phase6a.ps1 — PASS (when Gemini quota available)
+
+Profile editor detour (done — feeds all AI features)
+Empty skills[] caused Skill Gap to show everything as "Missing". Full profile built:
+
+Backend:
+
+User.js — phone, organization, organizationType
+user.controller.js — allowlist update fields; email still blocked
+Frontend:
+
+pages/Profile.jsx — 5 sections, completeness meter, save + toast
+components/profile/SkillsEditor.jsx — chip add/remove + autocomplete (~60 skills)
+Dashboard.jsx — profile avatar → /profile
+jsconfig.json — "ignoreDeprecations": "6.0" for TS 6 baseUrl warning
+backend/scripts/test-profile.ps1 — PASS
+Phase 6b — Meeting Assistant + README Generator (implemented, blocked on Gemini quota)
+Backend:
+
+File	Purpose
+prompts/meetingSummary.prompt.js
+buildMeetingSummaryPrompt(rawNotes, teamMemberNames) → strict JSON
+prompts/readmeGenerator.prompt.js
+buildReadmePrompt(project, tasks, techStack) → raw Markdown
+models/Meeting.js
+Persists summaries + action items + history
+ai.controller.js
+summarizeMeeting, getMeetingHistory, generateReadme
+routes/ai.routes.js
+3 new routes (see below)
+Routes:
+
+POST /api/ai/meeting-summary   (member)  — { projectId, rawNotes }
+GET  /api/ai/meeting-history   (member)  — ?projectId=
+POST /api/ai/generate-readme   (member)  — { projectId } → { markdown }
+Meeting summary uses callGeminiJSON; README uses plain callGemini (not JSON)
+Both log to AIHistory; meetings saved to Meeting model
+Frontend:
+
+api/ai.api.js — summarizeMeeting, getMeetingHistory, generateReadme
+pages/MeetingNotes.jsx — textarea, summarize, action-item checklist, history list
+components/ai/ReadmeGeneratorCard.jsx — generate, react-markdown preview, copy + download .md
+ProjectDetails.jsx Overview tab — README card + Meeting Assistant link
+Route: /projects/:id/meetings
+react-markdown installed
+Tests: backend/scripts/test-phase6b.ps1
+
+Meeting summary + history + 403 checks — PASS
+README — FAIL on Gemini daily quota (not a code bug)
+Gemini / AI reliability fixes (today)
+Root cause of failures: NOT login JWT expiry. Gemini free-tier quota (HTTP 429):
+
+~20 requests/day per model on free tier (gemini-3.5-flash via gemini-flash-latest)
+User exhausted quota testing many AI features in one session
+Changes made:
+
+gemini.service.js — removed slow auto-retry (was causing 2–3 min spinners); fail fast on 429
+geminiUserMessage() — distinguishes daily quota vs short rate limit
+ai.controller.js — respondAIFailure() returns clearer messages (429 vs 502)
+WeeklySummaryCard + ReadmeGeneratorCard — shared aiLoading mutex on Overview (one AI feature at a time)
+backend/.env — added GEMINI_MODEL=gemini-2.0-flash (separate quota pool); still 429 today — resume tomorrow or new API key
+User-facing error (working as intended):
+
+"Gemini free daily quota used up (~20 requests/day). Wait until tomorrow, or set GEMINI_MODEL to a different model in backend/.env."
+
+AI routes currently wired
+POST /api/ai/generate-project
+POST /api/ai/generate-tasks
+POST /api/ai/productivity-report
+POST /api/ai/contribution-analysis
+POST /api/ai/match-team          (owner only)
+POST /api/ai/skill-gap           (member)
+POST /api/ai/meeting-summary     (member)   ← 6b
+GET  /api/ai/meeting-history     (member)   ← 6b
+POST /api/ai/generate-readme     (member)   ← 6b
+Scaffolded but not yet implemented: deadline-predict, conflict-resolver, risk-analysis, bottleneck (Phase 6c/6d)
+
+Key file paths
+backend/src/prompts/teamMatcher.prompt.js      ← gap-fill scoring fix
+backend/src/prompts/meetingSummary.prompt.js     ← 6b
+backend/src/prompts/readmeGenerator.prompt.js    ← 6b
+backend/src/controllers/ai.controller.js       ← all AI endpoints
+backend/src/models/Meeting.js
+backend/src/services/gemini.service.js           ← quota error handling
+backend/scripts/test-phase6a.ps1
+backend/scripts/test-phase6b.ps1
+frontend/src/pages/MeetingNotes.jsx
+frontend/src/components/ai/ReadmeGeneratorCard.jsx
+frontend/src/pages/Profile.jsx
+frontend/src/components/profile/SkillsEditor.jsx
+Dev conventions (preserve)
+Phased builds; commit only when user asks
+API envelope { success, message, data } — frontend peels .data
+Hand-rolled modals (Tailwind v3 / Shadcn v4 mismatch)
+PowerShell tests on Windows; frontend dev port 5173 or 5174
+GITHUB_TEST_TOKEN + GITHUB_TEST_REPO_URL in .env for Phase 5 live tests
+Profile skills[] + githubProfile feed Team Matcher, Skill Gap, Contribution Analyzer
+Status at end of day
+Phase	Status
+6a Team Matcher + Skill Gap
+✅ Done + gap-fill fix verified
+Profile editor
+✅ Done
+6b Meeting + README
+✅ Code complete; browser test blocked on Gemini quota
+Gemini quota
+⏸ Resume tomorrow — restart backend after quota resets
+Tomorrow — first steps
+Restart backend (npm run dev in backend/) — picks up GEMINI_MODEL=gemini-2.0-flash
+Re-test 6b in browser:
+Generate README on Overview tab (one button at a time)
+Meeting Notes at /projects/:id/meetings — paste notes with team names
+Download README as .md
+Run backend/scripts/test-phase6b.ps1 — should fully PASS if quota reset
+Next build: Phase 6c — Bottleneck Detector, Deadline Predictor, Risk Analyzer (shared task/timeline analysis logic)
+If Gemini still 429 tomorrow
+Wait for daily reset (often midnight Pacific)
+New key: aistudio.google.com/apikey → replace GEMINI_API_KEY in backend/.env
+Or enable billing in Google AI Studio
+Try alternate models: gemini-2.0-flash, gemini-2.0-flash-lite (set GEMINI_MODEL in .env)
+Build order ahead
+6c: Bottleneck, Deadline Predictor, Risk Analyzer
+6d: Conflict Resolver, Duplicate Work, Sprint Planner
+Phase 7: AI Engineering Manager (chat Q&A)
 
 
 

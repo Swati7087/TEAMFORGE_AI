@@ -28,6 +28,15 @@ const userSchema = new mongoose.Schema(
     githubProfile: { type: String, default: "" },
     linkedinProfile: { type: String, default: "" },
 
+    phone: { type: String, default: "", trim: true },
+    // College OR company — one flexible field for student/early-career context.
+    organization: { type: String, default: "", trim: true },
+    organizationType: {
+      type: String,
+      enum: ["college", "company", "other"],
+      default: "college",
+    },
+
     projects: [{ type: mongoose.Schema.Types.ObjectId, ref: "Project" }],
   },
   { timestamps: true }

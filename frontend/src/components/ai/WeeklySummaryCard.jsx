@@ -2,19 +2,19 @@ import { useState } from "react";
 import { toast } from "sonner";
 import * as aiApi from "../../api/ai.api";
 
-// Weekly summary widget for a single project. Shown on ProjectDetails'
-// Overview tab. Same button-then-panel pattern as AIBreakdownButton, but the
-// output is a rich text card (summary / highlights / concerns / next steps),
-// not a task list — so it's a distinct component instead of a dialog.
-
-export default function WeeklySummaryCard({ projectId }) {
+export default function WeeklySummaryCard({
+  projectId,
+  disabled = false,
+  onLoadingChange,
+}) {
   const [loading, setLoading] = useState(false);
   const [report, setReport] = useState(null);
   const [error, setError] = useState(null);
 
   const handleGenerate = async () => {
-    if (loading || !projectId) return;
+    if (loading || disabled || !projectId) return;
     setLoading(true);
+    onLoadingChange?.(true);
     setError(null);
     try {
       const r = await aiApi.generateProductivityReport(projectId);
@@ -29,6 +29,7 @@ export default function WeeklySummaryCard({ projectId }) {
       toast.error(msg);
     } finally {
       setLoading(false);
+      onLoadingChange?.(false);
     }
   };
 
@@ -43,13 +44,13 @@ export default function WeeklySummaryCard({ projectId }) {
           </h3>
           <p className="text-[11px] text-gray-500">
             One-click recap of last week — highlights, risks, and what to hit
-            next.
+            next. Run one AI feature at a time on the free Gemini tier.
           </p>
         </div>
         <button
           type="button"
           onClick={handleGenerate}
-          disabled={loading}
+          disabled={loading || disabled}
           className="text-xs font-semibold text-white tracking-wider uppercase px-3.5 py-2 rounded-lg border border-pink-400/40 bg-pink-500/10 hover:bg-pink-500/20 hover:shadow-[0_0_25px_rgba(236,72,153,0.35)] transition-all disabled:opacity-40 disabled:cursor-not-allowed inline-flex items-center gap-2 whitespace-nowrap"
         >
           {loading ? (

@@ -2,12 +2,6 @@ import axiosClient from "./axiosClient";
 
 // Wrappers around /api/ai. Same envelope-peeling convention as the rest of
 // the API layer — return the inner `data` on success.
-//
-// Failure handling: we intentionally DO NOT swallow errors here. The backend
-// returns a clean 502 with { success:false, message:"AI generation failed,
-// please try again" } on Gemini/parse failures. Callers should catch and use
-// err.response.data.message (fall back to err.message) so the UI can surface
-// the real reason inline / via toast.
 
 export async function generateProject(idea) {
   const res = await axiosClient.post("/api/ai/generate-project", { idea });
@@ -23,5 +17,35 @@ export async function generateProductivityReport(projectId) {
   const res = await axiosClient.post("/api/ai/productivity-report", {
     projectId,
   });
+  return res.data.data;
+}
+
+export async function matchTeam(projectId) {
+  const res = await axiosClient.post("/api/ai/match-team", { projectId });
+  return res.data.data;
+}
+
+export async function analyzeSkillGap(projectId) {
+  const res = await axiosClient.post("/api/ai/skill-gap", { projectId });
+  return res.data.data;
+}
+
+export async function summarizeMeeting(projectId, rawNotes) {
+  const res = await axiosClient.post("/api/ai/meeting-summary", {
+    projectId,
+    rawNotes,
+  });
+  return res.data.data;
+}
+
+export async function getMeetingHistory(projectId) {
+  const res = await axiosClient.get("/api/ai/meeting-history", {
+    params: { projectId },
+  });
+  return res.data.data;
+}
+
+export async function generateReadme(projectId) {
+  const res = await axiosClient.post("/api/ai/generate-readme", { projectId });
   return res.data.data;
 }
