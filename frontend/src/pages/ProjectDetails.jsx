@@ -12,6 +12,7 @@ import SkillGapPanel from "../components/team/SkillGapPanel";
 import AIBreakdownButton from "../components/ai/AIBreakdownButton";
 import WeeklySummaryCard from "../components/ai/WeeklySummaryCard";
 import ReadmeGeneratorCard from "../components/ai/ReadmeGeneratorCard";
+import ProjectHealthPanel from "../components/ai/ProjectHealthPanel";
 import GitHubTab from "../components/github/GitHubTab";
 
 const STATUS_STYLE = {
@@ -31,6 +32,7 @@ const STATUS_STYLE = {
 
 const TABS = [
   { id: "overview", label: "Overview" },
+  { id: "insights", label: "Insights" },
   { id: "team", label: "Team" },
   { id: "tasks", label: "Tasks" },
   { id: "github", label: "GitHub" },
@@ -402,6 +404,21 @@ export default function ProjectDetails() {
                 </div>
               </div>
             )}
+          </div>
+        )}
+
+        {tab === "insights" && (isOwner || isMember) && (
+          <ProjectHealthPanel
+            projectId={id}
+            hasTimeline={Boolean(project.timeline?.trim())}
+            disabled={aiLoading}
+            onLoadingChange={setAiLoading}
+          />
+        )}
+
+        {tab === "insights" && !isOwner && !isMember && (
+          <div className="text-sm text-gray-500 italic py-8 text-center">
+            Join this project to view AI insights.
           </div>
         )}
 

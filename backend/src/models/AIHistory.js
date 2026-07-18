@@ -14,6 +14,7 @@ const AI_TYPES = [
   "readme",
   "skill-gap",
   "productivity-report",
+  "bottleneck",
   "deadline-predict",
   "conflict-resolver",
   "risk-analysis",

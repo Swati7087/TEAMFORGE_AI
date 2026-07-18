@@ -33,6 +33,10 @@ import { buildTeamMatcherPrompt } from "../prompts/teamMatcher.prompt.js";
 import { buildSkillGapPrompt } from "../prompts/skillGap.prompt.js";
 import { buildMeetingSummaryPrompt } from "../prompts/meetingSummary.prompt.js";
 import { buildReadmePrompt } from "../prompts/readmeGenerator.prompt.js";
+import { buildBottleneckPrompt } from "../prompts/bottleneckDetector.prompt.js";
+import { buildDeadlinePredictorPrompt } from "../prompts/deadlinePredictor.prompt.js";
+import { buildRiskAnalyzerPrompt } from "../prompts/riskAnalyzer.prompt.js";
+import { computeTaskMetrics } from "../utils/taskAnalytics.js";
 import Team from "../models/Team.js";
 import Meeting from "../models/Meeting.js";
 
@@ -1199,4 +1203,263 @@ export const generateReadme = asyncHandler(async (req, res) => {
 
     return respondAIFailure(res, err);
   }
+});
+
+async function getProjectAndMetrics(projectId, userId) {
+  const project = await Project.findById(projectId);
+  if (!project) {
+    return { error: { status: 404, message: "Project not found" } };
+  }
+
+  if (!isProjectMember(project, userId)) {
+    return {
+      error: { status: 403, message: "Not authorized to access this project" },
+    };
+  }
+
+  const tasks = await Task.find({ project: projectId })
+    .select(
+      "title status assignedTo deadline priority difficulty createdAt updatedAt"
+    )
+    .lean();
+
+  const metrics = computeTaskMetrics(tasks);
+
+  return { project, tasks, metrics };
+}
+
+function buildMetricsInputSnapshot(project, metrics) {
+  return {
+    projectId: String(project._id),
+    totalTasks: metrics.totalTasks,
+    overdueTasks: metrics.overdueTasks,
+    unassignedTasks: metrics.unassignedTasks,
+    tasksByStatus: metrics.tasksByStatus,
+  };
+}
+
+function insufficientDataResponse(message) {
+  return {
+    insufficientData: true,
+    message,
+  };
+}
+
+async function runGeminiHealthAnalysis({
+  req,
+  res,
+  projectId,
+  historyType,
+  buildPrompt,
+  normalizeOutput,
+  preCheck,
+}) {
+  if (!projectId) {
+    return failure(res, 400, "projectId is required");
+  }
+
+  const ctx = await getProjectAndMetrics(projectId, req.user._id);
+  if (ctx.error) {
+    return failure(res, ctx.error.status, ctx.error.message);
+  }
+
+  const { project, metrics } = ctx;
+  const inputSnapshot = buildMetricsInputSnapshot(project, metrics);
+
+  const early = preCheck?.(project, metrics);
+  if (early) {
+    return success(res, 200, early.data, early.message);
+  }
+
+  const prompt = buildPrompt(project, metrics);
+
+  try {
+    const { parsed, raw } = await callGeminiJSON(prompt);
+
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      const shapeErr = new Error(
+        `Gemini returned a non-object response for ${historyType}`
+      );
+      shapeErr.rawResponse = raw;
+      throw shapeErr;
+    }
+
+    const result = normalizeOutput(parsed);
+
+    await logAIHistory({
+      user: req.user._id,
+      project: project._id,
+      type: historyType,
+      input: inputSnapshot,
+      output: result,
+      rawResponse: raw,
+      status: "success",
+    });
+
+    return success(res, 200, result, `${historyType} generated`);
+  } catch (err) {
+    console.error(`[ai.controller] ${historyType} failed:`, err.message);
+    if (err.rawResponse) {
+      console.error(
+        "[ai.controller] Gemini raw response:",
+        truncate(err.rawResponse, 1000)
+      );
+    }
+
+    await logAIHistory({
+      user: req.user._id,
+      project: project._id,
+      type: historyType,
+      input: inputSnapshot,
+      output: null,
+      rawResponse: err.rawResponse || "",
+      status: "failed",
+      errorMessage: truncate(err.message, 500),
+    });
+
+    return respondAIFailure(res, err);
+  }
+}
+
+// POST /api/ai/bottleneck-detect — project member only
+export const detectBottlenecks = asyncHandler(async (req, res) => {
+  const { projectId } = req.body || {};
+
+  return runGeminiHealthAnalysis({
+    req,
+    res,
+    projectId,
+    historyType: "bottleneck",
+    preCheck: (_project, metrics) => {
+      if (metrics.totalTasks === 0) {
+        return {
+          message: "Not enough data yet",
+          data: {
+            ...insufficientDataResponse(
+              "Not enough data yet — add tasks to the project before running bottleneck analysis."
+            ),
+            bottlenecks: [],
+            summary:
+              "Not enough data yet — add tasks to the project before running bottleneck analysis.",
+          },
+        };
+      }
+      return null;
+    },
+    buildPrompt: (project, metrics) =>
+      buildBottleneckPrompt(project.title, metrics),
+    normalizeOutput: (parsed) => ({
+      bottlenecks: Array.isArray(parsed.bottlenecks)
+        ? parsed.bottlenecks
+        : [],
+      summary:
+        typeof parsed.summary === "string"
+          ? parsed.summary
+          : "Bottleneck analysis complete.",
+    }),
+  });
+});
+
+// POST /api/ai/deadline-predict — project member only
+export const predictDeadline = asyncHandler(async (req, res) => {
+  const { projectId } = req.body || {};
+
+  return runGeminiHealthAnalysis({
+    req,
+    res,
+    projectId,
+    historyType: "deadline-predict",
+    preCheck: (project, metrics) => {
+      if (metrics.totalTasks === 0) {
+        return {
+          message: "Not enough data yet",
+          data: {
+            ...insufficientDataResponse(
+              "Not enough data yet — add tasks before predicting the deadline."
+            ),
+            completionProbability: null,
+            reasoning:
+              "Not enough data yet — add tasks before predicting the deadline.",
+            riskFactors: [],
+            recommendedActions: ["Create tasks for this project first"],
+          },
+        };
+      }
+
+      if (!String(project.timeline || "").trim()) {
+        return {
+          message: "Timeline not set",
+          data: {
+            ...insufficientDataResponse(
+              "Set a project timeline/deadline before running deadline prediction."
+            ),
+            completionProbability: null,
+            reasoning:
+              "Set a project timeline/deadline before running deadline prediction.",
+            riskFactors: [],
+            recommendedActions: [
+              "Add a timeline when creating or editing the project",
+            ],
+          },
+        };
+      }
+
+      return null;
+    },
+    buildPrompt: (project, metrics) =>
+      buildDeadlinePredictorPrompt(
+        project.title,
+        project.timeline,
+        metrics
+      ),
+    normalizeOutput: (parsed) => ({
+      completionProbability:
+        typeof parsed.completionProbability === "number"
+          ? Math.min(100, Math.max(0, Math.round(parsed.completionProbability)))
+          : null,
+      reasoning:
+        typeof parsed.reasoning === "string" ? parsed.reasoning : "",
+      riskFactors: Array.isArray(parsed.riskFactors)
+        ? parsed.riskFactors
+        : [],
+      recommendedActions: Array.isArray(parsed.recommendedActions)
+        ? parsed.recommendedActions
+        : [],
+    }),
+  });
+});
+
+// POST /api/ai/risk-analysis — project member only
+export const analyzeProjectRisk = asyncHandler(async (req, res) => {
+  const { projectId } = req.body || {};
+
+  return runGeminiHealthAnalysis({
+    req,
+    res,
+    projectId,
+    historyType: "risk-analysis",
+    preCheck: (_project, metrics) => {
+      if (metrics.totalTasks === 0) {
+        return {
+          message: "Not enough data yet",
+          data: {
+            ...insufficientDataResponse(
+              "Not enough data yet — add tasks before running risk analysis."
+            ),
+            risks: [],
+          },
+        };
+      }
+      return null;
+    },
+    buildPrompt: (project, metrics) =>
+      buildRiskAnalyzerPrompt(
+        project.title,
+        project.techStack || [],
+        metrics
+      ),
+    normalizeOutput: (parsed) => ({
+      risks: Array.isArray(parsed.risks) ? parsed.risks : [],
+    }),
+  });
 });

@@ -49,3 +49,18 @@ export async function generateReadme(projectId) {
   const res = await axiosClient.post("/api/ai/generate-readme", { projectId });
   return res.data.data;
 }
+
+export async function detectBottlenecks(projectId) {
+  const res = await axiosClient.post("/api/ai/bottleneck-detect", { projectId });
+  return res.data.data;
+}
+
+export async function predictDeadline(projectId) {
+  const res = await axiosClient.post("/api/ai/deadline-predict", { projectId });
+  return res.data.data;
+}
+
+export async function analyzeProjectRisk(projectId) {
+  const res = await axiosClient.post("/api/ai/risk-analysis", { projectId });
+  return res.data.data;
+}
