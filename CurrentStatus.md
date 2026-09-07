@@ -763,8 +763,58 @@ Build order ahead
 Phase 7: AI Engineering Manager (chat Q&A)
 
 
+Phase 7 is implemented. Here's what shipped and how it tested.
 
+Part A — Pending Invites
+Backend
 
+GET /api/teams/my-invites — returns pending invited / requested entries for the logged-in user
+Registered before /:projectId so it isn't swallowed by the param route
+respondToInvite already allows invitees to accept without being project members
+Frontend
+
+PendingInvitesWidget on the Dashboard (above the project grid)
+Accept/Reject for invites; requested joins show "Pending owner"
+On accept, invite disappears and the project grid refreshes
+Part B — AI Engineering Manager
+6d features (merged into Phase 7)
+
+Prompts: conflictResolver, duplicateWorkDetector, sprintPlanner
+Routes: POST /api/ai/conflict-resolve, /duplicate-work, /sprint-plan
+Core manager
+
+aiManager.service.js — tool registry + Gemini function calling over all prior AI tools
+aiManager.controller.js — chat + suggestions endpoints
+POST /api/ai/manager/chat → { reply, toolUsed, toolLabel }
+GET /api/ai/manager/suggestions?projectId=
+Logs to AIHistory with type engineering-manager
+Frontend
+
+/projects/:id/manager — chat UI with quick-actions dropdown, tool badges, session history
+Prominent Talk to AI Manager button on ProjectDetails
+Test results (test-phase7.ps1)
+Check	Result
+Invite → dashboard widget → accept
+PASS
+Manager chat (bottleneck question)
+PASS
+Manager chat (general overview + history)
+PASS
+Non-member 403 on chat + suggestions
+PASS
+6d routes (duplicate / sprint / conflict)
+429 on 2nd run — Gemini rate limit, not a code bug
+First run after the function-calling fix passed everything including 6d routes. The second run hit Gemini quota from back-to-back calls.
+
+Try it in the browser
+Start backend: npm run dev in backend/
+Start frontend: npm run dev in frontend/
+User A invites User B → B sees it on Dashboard
+Open a project → Talk to AI Manager
+Ask "What's blocking this project?" or use the quick-actions menu
+If you want, I can commit this as Phase 7: AI Engineering Manager + pending invites, or walk through a live browser test checklist next.
+
+Next thing to do - few things to change ... first the placement of invite feature ... we can use a bell icon on navbar ... that shoes invite count in red (like a notification) on clicking the bell icon it navigates usto our invites ... and on clicking it we can actually see the project and the profile of the person who sent an invite 
 
 
 

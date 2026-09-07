@@ -19,6 +19,9 @@ const AI_TYPES = [
   "conflict-resolver",
   "risk-analysis",
   "contribution-analysis",
+  "duplicate-work",
+  "sprint-planner",
+  "engineering-manager",
 ];
 
 const aiHistorySchema = new mongoose.Schema(

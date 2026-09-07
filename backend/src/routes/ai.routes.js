@@ -12,6 +12,11 @@
 //   POST /api/ai/bottleneck-detect    (Phase 6c, member)
 //   POST /api/ai/deadline-predict     (Phase 6c, member)
 //   POST /api/ai/risk-analysis        (Phase 6c, member)
+//   POST /api/ai/conflict-resolve     (Phase 7 / merged 6d, member)
+//   POST /api/ai/duplicate-work       (Phase 7 / merged 6d, member)
+//   POST /api/ai/sprint-plan          (Phase 7 / merged 6d, member)
+//   POST /api/ai/manager/chat         (Phase 7, member)
+//   GET  /api/ai/manager/suggestions  (Phase 7, member)
 
 import express from "express";
 import { protect } from "../middlewares/auth.middleware.js";
@@ -28,7 +33,14 @@ import {
   detectBottlenecks,
   predictDeadline,
   analyzeProjectRisk,
+  resolveConflict,
+  detectDuplicateWork,
+  planSprints,
 } from "../controllers/ai.controller.js";
+import {
+  chatWithManager,
+  getSuggestedPrompts,
+} from "../controllers/aiManager.controller.js";
 
 const router = express.Router();
 
@@ -46,5 +58,11 @@ router.post("/generate-readme", generateReadme);
 router.post("/bottleneck-detect", detectBottlenecks);
 router.post("/deadline-predict", predictDeadline);
 router.post("/risk-analysis", analyzeProjectRisk);
+router.post("/conflict-resolve", resolveConflict);
+router.post("/duplicate-work", detectDuplicateWork);
+router.post("/sprint-plan", planSprints);
+
+router.post("/manager/chat", chatWithManager);
+router.get("/manager/suggestions", getSuggestedPrompts);
 
 export default router;

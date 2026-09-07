@@ -229,6 +229,16 @@ export default function ProjectDetails() {
 
         {/* Header block */}
         <div className="mb-6">
+          {(isOwner || isMember) && (
+            <Link
+              to={`/projects/${id}/manager`}
+              className="inline-flex items-center gap-2 mb-4 text-sm font-semibold text-white px-5 py-3 rounded-xl bg-gradient-to-r from-green-500 to-pink-500 hover:shadow-[0_0_30px_rgba(236,72,153,0.45)] transition-all border border-pink-500/20"
+            >
+              <span aria-hidden>✦</span>
+              Talk to AI Manager
+            </Link>
+          )}
+
           <div
             className={`inline-flex items-center gap-2 px-3 py-1 rounded-full border text-[10px] font-medium tracking-[0.2em] uppercase mb-3 ${statusStyle.label}`}
           >

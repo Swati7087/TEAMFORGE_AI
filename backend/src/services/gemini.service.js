@@ -103,8 +103,63 @@ export async function callGemini(promptText) {
   return text;
 }
 
-// Gemini sometimes wraps JSON in ```json ... ``` fences despite instructions.
-// Strip a single leading/trailing fence pair defensively before parsing.
+// Multi-turn chat + optional function calling (Phase 7 AI Manager).
+export async function callGeminiChat({
+  systemInstruction,
+  contents,
+  tools,
+  toolConfig,
+}) {
+  const key = getKey();
+  if (!key) {
+    throw new Error("GEMINI_API_KEY is not set");
+  }
+
+  const body = { contents: contents || [] };
+  if (systemInstruction) {
+    body.systemInstruction = {
+      parts: [{ text: String(systemInstruction) }],
+    };
+  }
+  if (tools?.length) {
+    body.tools = tools;
+  }
+  if (toolConfig) {
+    body.toolConfig = toolConfig;
+  }
+
+  let res;
+  try {
+    res = await axios.post(
+      `${getEndpoint()}?key=${encodeURIComponent(key)}`,
+      body,
+      { timeout: 90000, headers: { "Content-Type": "application/json" } }
+    );
+  } catch (axiosErr) {
+    throw buildGeminiError(axiosErr);
+  }
+
+  return res.data;
+}
+
+export function getModelParts(response) {
+  return response?.candidates?.[0]?.content?.parts || [];
+}
+
+export function getTextFromParts(parts) {
+  return (parts || [])
+    .filter((p) => typeof p.text === "string")
+    .map((p) => p.text)
+    .join("")
+    .trim();
+}
+
+export function getFunctionCallsFromParts(parts) {
+  return (parts || [])
+    .filter((p) => p.functionCall?.name)
+    .map((p) => p.functionCall);
+}
+
 function stripMarkdownFences(raw) {
   let s = String(raw).trim();
   if (s.startsWith("```")) {

@@ -15,6 +15,8 @@ import {
 import { useAuth } from "../hooks/useAuth";
 import { useProjects } from "../hooks/useProjects";
 import * as dashboardApi from "../api/dashboard.api";
+import * as teamApi from "../api/team.api";
+import PendingInvitesWidget from "../components/dashboard/PendingInvitesWidget";
 
 // Terminal Punk palette used consistently across all charts. Matches the
 // Kanban column colors so someone glancing at the donut instantly maps back
@@ -40,15 +42,39 @@ const STATUS_STYLE = {
 
 export default function Dashboard() {
   const { user, logout } = useAuth();
-  const { projects, loading: projectsLoading, error: projectsError } =
+  const { projects, loading: projectsLoading, error: projectsError, refetch: refetchProjects } =
     useProjects();
 
   const [summary, setSummary] = useState(null);
   const [productivity, setProductivity] = useState([]);
   const [dashLoading, setDashLoading] = useState(true);
   const [dashError, setDashError] = useState(null);
+  const [invites, setInvites] = useState([]);
 
   const currentUserId = user?._id || user?.id;
+
+  useEffect(() => {
+    let cancelled = false;
+    async function loadInvites() {
+      try {
+        const data = await teamApi.getMyInvites();
+        if (!cancelled) setInvites(data || []);
+      } catch {
+        if (!cancelled) setInvites([]);
+      }
+    }
+    loadInvites();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const handleInviteUpdate = async (projectId, status) => {
+    setInvites((prev) => prev.filter((i) => i.projectId !== projectId));
+    if (status === "accepted") {
+      await refetchProjects();
+    }
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -221,6 +247,12 @@ export default function Dashboard() {
             loading={dashLoading}
           />
         </div>
+
+        {/* Pending invites — only when user has open invites */}
+        <PendingInvitesWidget
+          invites={invites}
+          onUpdate={handleInviteUpdate}
+        />
 
         {/* Projects grid */}
         <div>

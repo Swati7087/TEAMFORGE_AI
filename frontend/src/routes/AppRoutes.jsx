@@ -8,6 +8,7 @@ import Profile from "../pages/Profile";
 import CreateProject from "../pages/CreateProject";
 import ProjectDetails from "../pages/ProjectDetails";
 import MeetingNotes from "../pages/MeetingNotes";
+import AIManager from "../pages/AIManager";
 import TaskBoard from "../pages/TaskBoard";
 import ProtectedRoute from "./ProtectedRoute";
 
@@ -58,6 +59,14 @@ export default function AppRoutes() {
         element={
           <ProtectedRoute>
             <MeetingNotes />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/projects/:id/manager"
+        element={
+          <ProtectedRoute>
+            <AIManager />
           </ProtectedRoute>
         }
       />

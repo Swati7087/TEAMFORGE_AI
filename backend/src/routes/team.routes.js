@@ -4,6 +4,7 @@ import {
   inviteToTeam,
   requestToJoin,
   respondToInvite,
+  getMyInvites,
   getTeamForProject,
   removeMember,
 } from "../controllers/team.controller.js";
@@ -12,6 +13,7 @@ const router = express.Router();
 
 router.use(protect);
 
+router.get("/my-invites", getMyInvites);
 router.post("/:projectId/invite", inviteToTeam);
 router.post("/:projectId/request", requestToJoin);
 router.patch("/:projectId/respond", respondToInvite);

@@ -193,6 +193,56 @@ export const respondToInvite = asyncHandler(async (req, res) => {
   return success(res, 200, team, `Invite/request ${status}`);
 });
 
+// GET /api/teams/my-invites — pending invites/requests for the logged-in user.
+export const getMyInvites = asyncHandler(async (req, res) => {
+  const userId = req.user._id;
+
+  const teams = await Team.find({
+    members: {
+      $elemMatch: {
+        user: userId,
+        status: { $in: ["invited", "requested"] },
+      },
+    },
+  })
+    .populate({
+      path: "project",
+      select: "title owner",
+      populate: { path: "owner", select: "name" },
+    })
+    .populate("members.invitedBy", "name")
+    .lean();
+
+  const invites = [];
+
+  for (const team of teams) {
+    const project = team.project;
+    if (!project?._id) continue;
+
+    const entry = team.members.find(
+      (m) =>
+        String(m.user) === String(userId) &&
+        (m.status === "invited" || m.status === "requested")
+    );
+    if (!entry) continue;
+
+    invites.push({
+      projectId: String(project._id),
+      projectTitle: project.title || "Untitled project",
+      ownerName: project.owner?.name || "Unknown",
+      status: entry.status,
+      invitedBy: entry.invitedBy?.name || null,
+      createdAt: team.updatedAt || team.createdAt,
+    });
+  }
+
+  invites.sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
+  );
+
+  return success(res, 200, invites, "Pending invites fetched");
+});
+
 // GET /api/teams/:projectId — owner or member only.
 export const getTeamForProject = asyncHandler(async (req, res) => {
   const { projectId } = req.params;

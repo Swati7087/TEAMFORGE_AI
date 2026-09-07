@@ -3,6 +3,11 @@ import axiosClient from "./axiosClient";
 // Wrappers around /api/teams. Team endpoints are all keyed by projectId in
 // the URL; the backend does the auth checks (owner-only invite, etc.).
 
+export async function getMyInvites() {
+  const res = await axiosClient.get("/api/teams/my-invites");
+  return res.data.data;
+}
+
 export async function inviteToTeam(projectId, { userId, role } = {}) {
   const res = await axiosClient.post(`/api/teams/${projectId}/invite`, {
     userId,

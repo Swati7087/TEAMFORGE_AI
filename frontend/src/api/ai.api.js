@@ -64,3 +64,40 @@ export async function analyzeProjectRisk(projectId) {
   const res = await axiosClient.post("/api/ai/risk-analysis", { projectId });
   return res.data.data;
 }
+
+export async function resolveConflict(projectId, conversationText) {
+  const res = await axiosClient.post("/api/ai/conflict-resolve", {
+    projectId,
+    conversationText,
+  });
+  return res.data.data;
+}
+
+export async function detectDuplicateWork(projectId) {
+  const res = await axiosClient.post("/api/ai/duplicate-work", { projectId });
+  return res.data.data;
+}
+
+export async function planSprints(projectId, timelineWeeks) {
+  const res = await axiosClient.post("/api/ai/sprint-plan", {
+    projectId,
+    timelineWeeks,
+  });
+  return res.data.data;
+}
+
+export async function chatWithManager(projectId, { message, conversationHistory }) {
+  const res = await axiosClient.post("/api/ai/manager/chat", {
+    projectId,
+    message,
+    conversationHistory,
+  });
+  return res.data.data;
+}
+
+export async function getManagerSuggestions(projectId) {
+  const res = await axiosClient.get("/api/ai/manager/suggestions", {
+    params: { projectId },
+  });
+  return res.data.data;
+}

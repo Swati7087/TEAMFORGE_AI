@@ -36,6 +36,9 @@ import { buildReadmePrompt } from "../prompts/readmeGenerator.prompt.js";
 import { buildBottleneckPrompt } from "../prompts/bottleneckDetector.prompt.js";
 import { buildDeadlinePredictorPrompt } from "../prompts/deadlinePredictor.prompt.js";
 import { buildRiskAnalyzerPrompt } from "../prompts/riskAnalyzer.prompt.js";
+import { buildConflictResolverPrompt } from "../prompts/conflictResolver.prompt.js";
+import { buildDuplicateWorkPrompt } from "../prompts/duplicateWorkDetector.prompt.js";
+import { buildSprintPlannerPrompt } from "../prompts/sprintPlanner.prompt.js";
 import { computeTaskMetrics } from "../utils/taskAnalytics.js";
 import Team from "../models/Team.js";
 import Meeting from "../models/Meeting.js";
@@ -1462,4 +1465,283 @@ export const analyzeProjectRisk = asyncHandler(async (req, res) => {
       risks: Array.isArray(parsed.risks) ? parsed.risks : [],
     }),
   });
+});
+
+function parseTimelineWeeks(timeline) {
+  const text = String(timeline || "").trim();
+  if (!text) return 4;
+  const match = text.match(/(\d+)\s*(?:week|wk|month|mo)/i);
+  if (match) {
+    const n = parseInt(match[1], 10);
+    if (/month|mo/i.test(text)) return Math.min(12, n * 4);
+    return Math.min(12, Math.max(1, n));
+  }
+  const num = parseInt(text, 10);
+  if (!Number.isNaN(num) && num > 0) return Math.min(12, num);
+  return 4;
+}
+
+// POST /api/ai/conflict-resolve — project member only
+export const resolveConflict = asyncHandler(async (req, res) => {
+  const { projectId, conversationText } = req.body || {};
+
+  if (!projectId) {
+    return failure(res, 400, "projectId is required");
+  }
+  if (
+    !conversationText ||
+    typeof conversationText !== "string" ||
+    !conversationText.trim()
+  ) {
+    return failure(res, 400, "conversationText is required");
+  }
+
+  const project = await Project.findById(projectId);
+  if (!project) {
+    return failure(res, 404, "Project not found");
+  }
+
+  if (!isProjectMember(project, req.user._id)) {
+    return failure(res, 403, "Not authorized to access this project");
+  }
+
+  const cleanText = conversationText.trim();
+  const inputSnapshot = {
+    projectId: String(project._id),
+    conversationLength: cleanText.length,
+  };
+
+  const prompt = buildConflictResolverPrompt(cleanText);
+
+  try {
+    const { parsed, raw } = await callGeminiJSON(prompt);
+
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      const shapeErr = new Error(
+        "Gemini returned a non-object response for conflict resolver"
+      );
+      shapeErr.rawResponse = raw;
+      throw shapeErr;
+    }
+
+    const result = {
+      mainIssue: String(parsed.mainIssue || "").trim(),
+      neutralSummary: String(parsed.neutralSummary || "").trim(),
+      suggestedResolution: String(parsed.suggestedResolution || "").trim(),
+    };
+
+    await logAIHistory({
+      user: req.user._id,
+      project: project._id,
+      type: "conflict-resolver",
+      input: inputSnapshot,
+      output: result,
+      rawResponse: raw,
+      status: "success",
+    });
+
+    return success(res, 200, result, "Conflict analysis generated");
+  } catch (err) {
+    console.error("[ai.controller] resolveConflict failed:", err.message);
+    if (err.rawResponse) {
+      console.error(
+        "[ai.controller] Gemini raw response:",
+        truncate(err.rawResponse, 1000)
+      );
+    }
+
+    await logAIHistory({
+      user: req.user._id,
+      project: project._id,
+      type: "conflict-resolver",
+      input: inputSnapshot,
+      output: null,
+      rawResponse: err.rawResponse || "",
+      status: "failed",
+      errorMessage: truncate(err.message, 500),
+    });
+
+    return respondAIFailure(res, err);
+  }
+});
+
+// POST /api/ai/duplicate-work — project member only
+export const detectDuplicateWork = asyncHandler(async (req, res) => {
+  const { projectId } = req.body || {};
+
+  if (!projectId) {
+    return failure(res, 400, "projectId is required");
+  }
+
+  const ctx = await getProjectAndMetrics(projectId, req.user._id);
+  if (ctx.error) {
+    return failure(res, ctx.error.status, ctx.error.message);
+  }
+
+  const { project, tasks } = ctx;
+
+  if (tasks.length < 2) {
+    const empty = { duplicates: [] };
+    return success(
+      res,
+      200,
+      empty,
+      "Not enough tasks to detect duplicate work"
+    );
+  }
+
+  const inputSnapshot = {
+    projectId: String(project._id),
+    taskCount: tasks.length,
+  };
+
+  const prompt = buildDuplicateWorkPrompt(tasks);
+
+  try {
+    const { parsed, raw } = await callGeminiJSON(prompt);
+
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      const shapeErr = new Error(
+        "Gemini returned a non-object response for duplicate work"
+      );
+      shapeErr.rawResponse = raw;
+      throw shapeErr;
+    }
+
+    const validIds = new Set(tasks.map((t) => String(t._id)));
+    const duplicates = (Array.isArray(parsed.duplicates)
+      ? parsed.duplicates
+      : []
+    )
+      .map((d) => ({
+        taskIds: (Array.isArray(d.taskIds) ? d.taskIds : [])
+          .map(String)
+          .filter((id) => validIds.has(id)),
+        reason: typeof d.reason === "string" ? d.reason.trim() : "",
+      }))
+      .filter((d) => d.taskIds.length >= 2);
+
+    const result = { duplicates };
+
+    await logAIHistory({
+      user: req.user._id,
+      project: project._id,
+      type: "duplicate-work",
+      input: inputSnapshot,
+      output: result,
+      rawResponse: raw,
+      status: "success",
+    });
+
+    return success(res, 200, result, "Duplicate work analysis generated");
+  } catch (err) {
+    console.error("[ai.controller] detectDuplicateWork failed:", err.message);
+    if (err.rawResponse) {
+      console.error(
+        "[ai.controller] Gemini raw response:",
+        truncate(err.rawResponse, 1000)
+      );
+    }
+
+    await logAIHistory({
+      user: req.user._id,
+      project: project._id,
+      type: "duplicate-work",
+      input: inputSnapshot,
+      output: null,
+      rawResponse: err.rawResponse || "",
+      status: "failed",
+      errorMessage: truncate(err.message, 500),
+    });
+
+    return respondAIFailure(res, err);
+  }
+});
+
+// POST /api/ai/sprint-plan — project member only
+export const planSprints = asyncHandler(async (req, res) => {
+  const { projectId, timelineWeeks: weeksOverride } = req.body || {};
+
+  if (!projectId) {
+    return failure(res, 400, "projectId is required");
+  }
+
+  const ctx = await getProjectAndMetrics(projectId, req.user._id);
+  if (ctx.error) {
+    return failure(res, ctx.error.status, ctx.error.message);
+  }
+
+  const { project, tasks } = ctx;
+  const teamSize = 1 + (project.members?.length || 0);
+  const timelineWeeks =
+    weeksOverride != null
+      ? Math.min(12, Math.max(1, Number(weeksOverride) || 4))
+      : parseTimelineWeeks(project.timeline);
+
+  const inputSnapshot = {
+    projectId: String(project._id),
+    teamSize,
+    timelineWeeks,
+    taskCount: tasks.length,
+  };
+
+  const prompt = buildSprintPlannerPrompt(tasks, teamSize, timelineWeeks);
+
+  try {
+    const { parsed, raw } = await callGeminiJSON(prompt);
+
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+      const shapeErr = new Error(
+        "Gemini returned a non-object response for sprint planner"
+      );
+      shapeErr.rawResponse = raw;
+      throw shapeErr;
+    }
+
+    const validIds = new Set(tasks.map((t) => String(t._id)));
+    const sprints = (Array.isArray(parsed.sprints) ? parsed.sprints : [])
+      .map((s) => ({
+        week: Math.max(1, Math.min(timelineWeeks, Number(s.week) || 1)),
+        focus: typeof s.focus === "string" ? s.focus.trim() : "",
+        taskIds: (Array.isArray(s.taskIds) ? s.taskIds : [])
+          .map(String)
+          .filter((id) => validIds.has(id)),
+      }))
+      .filter((s) => s.focus || s.taskIds.length > 0);
+
+    const result = { sprints, teamSize, timelineWeeks };
+
+    await logAIHistory({
+      user: req.user._id,
+      project: project._id,
+      type: "sprint-planner",
+      input: inputSnapshot,
+      output: result,
+      rawResponse: raw,
+      status: "success",
+    });
+
+    return success(res, 200, result, "Sprint plan generated");
+  } catch (err) {
+    console.error("[ai.controller] planSprints failed:", err.message);
+    if (err.rawResponse) {
+      console.error(
+        "[ai.controller] Gemini raw response:",
+        truncate(err.rawResponse, 1000)
+      );
+    }
+
+    await logAIHistory({
+      user: req.user._id,
+      project: project._id,
+      type: "sprint-planner",
+      input: inputSnapshot,
+      output: null,
+      rawResponse: err.rawResponse || "",
+      status: "failed",
+      errorMessage: truncate(err.message, 500),
+    });
+
+    return respondAIFailure(res, err);
+  }
 });
