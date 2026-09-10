@@ -60,7 +60,7 @@ export const googleCallback = asyncHandler(async (req, res) => {
   const token = generateToken(req.user._id);
   // Redirect back to frontend with token as a query param.
   // Frontend grabs it from the URL and stores it, then cleans the URL.
-  res.redirect(`${env.frontendUrl}/oauth-success?token=${token}`);
+  res.redirect(`${env.primaryFrontendUrl}/oauth-success?token=${token}`);
 });
 
 // GET /api/auth/me  (protected)

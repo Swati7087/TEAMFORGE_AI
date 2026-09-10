@@ -6,6 +6,7 @@
 
 import express from "express";
 import passport from "../config/passport.js";
+import { env } from "../config/env.js";
 import { signup, login, googleCallback, getMe } from "../controllers/auth.controller.js";
 import { protect } from "../middlewares/auth.middleware.js";
 
@@ -21,7 +22,10 @@ router.get(
 
 router.get(
   "/google/callback",
-  passport.authenticate("google", { session: false, failureRedirect: "/login" }),
+  passport.authenticate("google", {
+    session: false,
+    failureRedirect: `${env.primaryFrontendUrl}/login?error=google`,
+  }),
   googleCallback
 );
 

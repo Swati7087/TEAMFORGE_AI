@@ -6,12 +6,14 @@ import User from "../models/User.js";
 // Only register the Google strategy if credentials are actually present.
 // Lets the server boot fine before you've set up Google Cloud Console creds.
 if (env.googleClientId && env.googleClientSecret) {
+  const callbackURL = `${env.backendUrl}/api/auth/google/callback`;
+  console.log(`🔐 Google OAuth callbackURL: ${callbackURL}`);
   passport.use(
     new GoogleStrategy(
       {
         clientID: env.googleClientId,
         clientSecret: env.googleClientSecret,
-        callbackURL: `${env.backendUrl}/api/auth/google/callback`,
+        callbackURL,
       },
       async (accessToken, refreshToken, profile, done) => {
         try {

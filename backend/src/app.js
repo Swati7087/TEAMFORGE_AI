@@ -20,10 +20,7 @@ const app = express();
 
 // FRONTEND_URL may be a comma-separated list so we can whitelist multiple
 // dev origins (e.g. 5173 + 5174 when Vite falls back to a spare port).
-const allowedOrigins = env.frontendUrl
-  .split(",")
-  .map((s) => s.trim())
-  .filter(Boolean);
+const allowedOrigins = env.frontendOrigins;
 
 app.use(
   cors({
