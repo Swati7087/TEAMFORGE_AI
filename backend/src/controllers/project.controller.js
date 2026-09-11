@@ -3,6 +3,7 @@ import Task from "../models/Task.js";
 import Team from "../models/Team.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { success, failure } from "../utils/apiResponse.js";
+import { indexContent } from "../services/indexing.service.js";
 
 // POST /api/projects
 export const createProject = asyncHandler(async (req, res) => {
@@ -24,6 +25,13 @@ export const createProject = asyncHandler(async (req, res) => {
     techStack,
     timeline,
     status,
+  });
+
+  await indexContent({
+    sourceType: "project",
+    sourceId: project._id,
+    projectId: project._id,
+    text: `${project.title}. ${project.description}`,
   });
 
   return success(res, 201, project, "Project created");
@@ -82,6 +90,14 @@ export const updateProject = asyncHandler(async (req, res) => {
   });
 
   await project.save();
+
+  await indexContent({
+    sourceType: "project",
+    sourceId: project._id,
+    projectId: project._id,
+    text: `${project.title}. ${project.description}`,
+  });
+
   return success(res, 200, project, "Project updated");
 });
 

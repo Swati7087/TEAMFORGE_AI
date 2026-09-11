@@ -2,6 +2,7 @@ import Task from "../models/Task.js";
 import Project from "../models/Project.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { success, failure } from "../utils/apiResponse.js";
+import { indexContent } from "../services/indexing.service.js";
 
 // Helper — resolves the project and reports whether the current user has
 // membership-level access (owner or accepted member).
@@ -54,6 +55,13 @@ export const createTask = asyncHandler(async (req, res) => {
   project.tasks.push(task._id);
   await project.save();
 
+  await indexContent({
+    sourceType: "task",
+    sourceId: task._id,
+    projectId: task.project,
+    text: `${task.title}. ${task.description}`,
+  });
+
   return success(res, 201, task, "Task created");
 });
 
@@ -96,6 +104,14 @@ export const updateTask = asyncHandler(async (req, res) => {
   });
 
   await task.save();
+
+  await indexContent({
+    sourceType: "task",
+    sourceId: task._id,
+    projectId: task.project,
+    text: `${task.title}. ${task.description}`,
+  });
+
   return success(res, 200, task, "Task updated");
 });
 

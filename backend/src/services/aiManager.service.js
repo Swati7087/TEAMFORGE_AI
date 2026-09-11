@@ -26,6 +26,7 @@ import { buildSkillGapPrompt } from "../prompts/skillGap.prompt.js";
 import { buildDuplicateWorkPrompt } from "../prompts/duplicateWorkDetector.prompt.js";
 import { buildSprintPlannerPrompt } from "../prompts/sprintPlanner.prompt.js";
 import { buildConflictResolverPrompt } from "../prompts/conflictResolver.prompt.js";
+import { retrieveRelevantContext } from "./retrieval.service.js";
 
 const TOOL_LABELS = {
   checkBottlenecks: "Bottleneck Detector",
@@ -37,6 +38,7 @@ const TOOL_LABELS = {
   planSprints: "Sprint Planner",
   resolveConflict: "Conflict Resolver",
   getContributionSummary: "Contribution Analyzer",
+  rag_retrieval: "Project Context",
 };
 
 function isProjectMember(project, userId) {
@@ -305,6 +307,30 @@ Guidelines:
 - For team invites / "who should I join", use findTeamMatches (owner-only tool — if not owner, explain politely).
 - For conflict mediation, use resolveConflict with the conversation text from the user's message.
 - Keep replies under ~200 words unless the user asks for detail.`;
+}
+
+function formatRetrievedContext(hits) {
+  const lines = hits.map((hit) => {
+    const text = String(hit.text || "").replace(/\s+/g, " ").trim();
+    return `[${hit.sourceType}] ${text}`;
+  });
+  return `Relevant project information:\n${lines.join("\n")}`;
+}
+
+function buildRagSystemInstruction(hits) {
+  const persona = `You are the AI Engineering Manager for TeamForge AI — a smart teammate helping a student coding team manage their project. Be concise, practical, and honest. Keep replies under ~200 words unless the user asks for detail.`;
+
+  if (hits.length > 0) {
+    return `${persona}
+
+Answer the user's question using the following relevant project context. If the context doesn't fully answer the question, say so honestly rather than guessing or making things up.
+
+${formatRetrievedContext(hits)}`;
+  }
+
+  return `${persona}
+
+No specific project context was found for this question. Answer conversationally if it's a general question, or tell the user you don't have enough information about this specific topic.`;
 }
 
 function buildToolDeclarations() {
@@ -764,6 +790,7 @@ export async function runManagerChat({
   let functionCalls = getFunctionCallsFromParts(parts);
   let toolUsed = null;
   let toolResult = null;
+  let sourcesUsed = [];
 
   if (functionCalls.length > 0) {
     const call = functionCalls[0];
@@ -798,6 +825,27 @@ export async function runManagerChat({
       contents: followUpContents,
     });
     parts = getModelParts(response);
+  } else {
+    // No specialist tool matched — retrieve project embeddings instead of
+    // answering from the generic dumped context.
+    let hits = [];
+    try {
+      hits = await retrieveRelevantContext(cleanMessage, projectId);
+    } catch (err) {
+      console.error("[aiManager] RAG retrieval failed:", err.message);
+    }
+
+    toolUsed = "rag_retrieval";
+    sourcesUsed = hits.map((hit) => ({
+      sourceType: hit.sourceType,
+      sourceId: hit.sourceId,
+    }));
+
+    response = await callGeminiChat({
+      systemInstruction: buildRagSystemInstruction(hits),
+      contents,
+    });
+    parts = getModelParts(response);
   }
 
   let reply = getTextFromParts(parts);
@@ -811,6 +859,7 @@ export async function runManagerChat({
     toolUsed,
     toolLabel: toolUsed ? getToolLabel(toolUsed) : null,
     toolResult,
+    sourcesUsed,
   };
 }
 

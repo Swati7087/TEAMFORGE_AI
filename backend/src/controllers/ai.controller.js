@@ -42,6 +42,7 @@ import { buildSprintPlannerPrompt } from "../prompts/sprintPlanner.prompt.js";
 import { computeTaskMetrics } from "../utils/taskAnalytics.js";
 import Team from "../models/Team.js";
 import Meeting from "../models/Meeting.js";
+import { indexContent } from "../services/indexing.service.js";
 
 const MAX_DETAIL_COMMITS = 50;
 
@@ -565,6 +566,15 @@ export const generateContributionAnalysis = asyncHandler(async (req, res) => {
     });
 
     computeContributionPercentages(merged);
+
+    for (const contributor of merged) {
+      await indexContent({
+        sourceType: "contribution",
+        sourceId: `${project._id}_${contributor.githubUsername}`,
+        projectId: project._id,
+        text: `${contributor.githubUsername}: ${contributor.summary}`,
+      });
+    }
 
     const saved = await Contribution.findOneAndUpdate(
       { project: project._id },
@@ -1172,6 +1182,13 @@ export const generateReadme = asyncHandler(async (req, res) => {
   try {
     const markdown = await callGemini(prompt);
     const trimmed = markdown.trim();
+
+    await indexContent({
+      sourceType: "readme",
+      sourceId: project._id,
+      projectId: project._id,
+      text: trimmed,
+    });
 
     await logAIHistory({
       user: req.user._id,

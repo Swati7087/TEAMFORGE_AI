@@ -60,11 +60,17 @@ export const chatWithManager = asyncHandler(async (req, res) => {
         historyLength: Array.isArray(conversationHistory)
           ? conversationHistory.length
           : 0,
+        ragUsed: result.toolUsed === "rag_retrieval",
+        ragSourceCount: Array.isArray(result.sourcesUsed)
+          ? result.sourcesUsed.length
+          : 0,
+        sourcesUsed: result.sourcesUsed || [],
       },
       output: {
         reply: result.reply,
         toolUsed: result.toolUsed,
         toolLabel: result.toolLabel,
+        sourcesUsed: result.sourcesUsed || [],
       },
       rawResponse: result.reply,
       status: "success",
@@ -77,6 +83,7 @@ export const chatWithManager = asyncHandler(async (req, res) => {
         reply: result.reply,
         toolUsed: result.toolUsed,
         toolLabel: result.toolLabel,
+        sourcesUsed: result.sourcesUsed || [],
       },
       "Manager reply generated"
     );

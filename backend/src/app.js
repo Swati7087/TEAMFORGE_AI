@@ -50,6 +50,14 @@ app.use(
 );
 app.use(passport.initialize());
 
+app.get("/", (req, res) =>
+  res.json({
+    success: true,
+    service: "TeamForge AI API",
+    health: "/api/health",
+    hint: "This is the backend. Open the frontend (Vite) at http://localhost:5173",
+  })
+);
 app.get("/api/health", (req, res) => res.json({ status: "ok" }));
 
 app.use("/api/auth", authRoutes);
