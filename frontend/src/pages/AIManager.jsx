@@ -4,8 +4,9 @@ import { toast } from "sonner";
 import { useProject } from "../hooks/useProjects";
 import * as aiApi from "../api/ai.api";
 
-function MessageBubble({ role, content, toolLabel }) {
+function MessageBubble({ role, content, toolLabel, toolUsed }) {
   const isUser = role === "user";
+  const isRag = toolUsed === "rag_retrieval";
 
   return (
     <div
@@ -25,7 +26,15 @@ function MessageBubble({ role, content, toolLabel }) {
           </p>
         )}
         <p className="text-sm leading-relaxed whitespace-pre-wrap">{content}</p>
-        {toolLabel && !isUser && (
+        {isRag && !isUser && (
+          <div className="mt-2 pt-2 border-t border-white/[0.06]">
+            <span className="inline-flex items-center gap-1 text-[10px] tracking-wider uppercase text-amber-300/90 bg-amber-400/10 border border-amber-400/20 rounded-full px-2 py-0.5">
+              <span aria-hidden>📚</span>
+              Answered from project context
+            </span>
+          </div>
+        )}
+        {toolLabel && !isUser && !isRag && (
           <div className="mt-2 pt-2 border-t border-white/[0.06]">
             <span className="inline-flex items-center gap-1 text-[10px] tracking-wider uppercase text-amber-300/90 bg-amber-400/10 border border-amber-400/20 rounded-full px-2 py-0.5">
               <span aria-hidden>🔧</span>
@@ -48,6 +57,7 @@ export default function AIManager() {
       content:
         "Hey — I'm your AI Engineering Manager. Ask me anything about this project, or pick a quick action below.",
       toolLabel: null,
+      toolUsed: null,
     },
   ]);
   const [input, setInput] = useState("");
@@ -83,7 +93,7 @@ export default function AIManager() {
       .slice(1)
       .map((m) => ({ role: m.role, content: m.content }));
 
-    const userMsg = { role: "user", content: trimmed, toolLabel: null };
+    const userMsg = { role: "user", content: trimmed, toolLabel: null, toolUsed: null };
     setMessages((prev) => [...prev, userMsg]);
     setInput("");
     setSending(true);
@@ -101,6 +111,7 @@ export default function AIManager() {
           role: "assistant",
           content: data.reply,
           toolLabel: data.toolLabel || null,
+          toolUsed: data.toolUsed || null,
         },
       ]);
     } catch (err) {
@@ -115,6 +126,7 @@ export default function AIManager() {
           role: "assistant",
           content: msg,
           toolLabel: null,
+          toolUsed: null,
         },
       ]);
     } finally {
@@ -193,6 +205,7 @@ export default function AIManager() {
               role={m.role}
               content={m.content}
               toolLabel={m.toolLabel}
+              toolUsed={m.toolUsed}
             />
           ))}
 
