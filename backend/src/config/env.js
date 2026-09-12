@@ -40,4 +40,6 @@ export const env = {
   primaryFrontendUrl: frontendOrigins[0] || "http://localhost:5173",
   // Local default; set BACKEND_URL to the Render origin in production (no trailing slash).
   backendUrl: stripSlash(process.env.BACKEND_URL || `http://localhost:${process.env.PORT || 5000}`),
+  upstashUrl: process.env.UPSTASH_REDIS_REST_URL || null,
+  upstashToken: process.env.UPSTASH_REDIS_REST_TOKEN || null,
 };

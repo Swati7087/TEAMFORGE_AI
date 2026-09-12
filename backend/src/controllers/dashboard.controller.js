@@ -13,6 +13,7 @@ import Project from "../models/Project.js";
 import Task from "../models/Task.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { success } from "../utils/apiResponse.js";
+import { redis } from "../services/redis.service.js";
 
 // Helper: return the UTC midnight of the given date. We aggregate + gap-fill
 // in UTC because Mongo's $dateToString defaults to UTC — using local time on
@@ -26,6 +27,14 @@ function utcMidnight(d = new Date()) {
 // GET /api/dashboard/summary
 export const getSummary = asyncHandler(async (req, res) => {
   const userId = req.user._id;
+
+  const cacheKey = `dashboard:summary:${req.user._id}`;
+  if (redis) {
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return success(res, 200, cached, "Dashboard summary (cached)");
+    }
+  }
 
   // 1. Projects the user owns or is a member of. Newest activity first.
   const projects = await Project.find({
@@ -99,7 +108,7 @@ export const getSummary = asyncHandler(async (req, res) => {
     isOwner: String(p.owner) === String(userId),
   }));
 
-  return success(res, 200, {
+  const summaryData = {
     activeProjects,
     completedProjects,
     totalTasks,
@@ -108,7 +117,13 @@ export const getSummary = asyncHandler(async (req, res) => {
     upcomingDeadlines,
     tasksByStatus,
     recentProjects,
-  });
+  };
+
+  if (redis) {
+    await redis.set(cacheKey, summaryData, { ex: 300 }); // 5 min cache
+  }
+
+  return success(res, 200, summaryData);
 });
 
 // GET /api/dashboard/productivity

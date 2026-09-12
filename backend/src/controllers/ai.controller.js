@@ -43,6 +43,7 @@ import { computeTaskMetrics } from "../utils/taskAnalytics.js";
 import Team from "../models/Team.js";
 import Meeting from "../models/Meeting.js";
 import { indexContent } from "../services/indexing.service.js";
+import { redis } from "../services/redis.service.js";
 
 const MAX_DETAIL_COMMITS = 50;
 
@@ -70,12 +71,22 @@ function respondAIFailure(res, err) {
   return failure(res, aiFailureStatus(err), geminiUserMessage(err));
 }
 
+
+
 // POST /api/ai/generate-project
 export const generateProject = asyncHandler(async (req, res) => {
   const { idea } = req.body || {};
 
   if (!idea || typeof idea !== "string" || !idea.trim()) {
     return failure(res, 400, "idea is required");
+  }
+
+  const cacheKey = `ai:project:${idea.trim().toLowerCase()}`;
+  if (redis) {
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return success(res, 200, cached, "Generated (cached)");
+    }
   }
 
   const cleanIdea = idea.trim();
@@ -93,6 +104,10 @@ export const generateProject = asyncHandler(async (req, res) => {
       rawResponse: raw,
       status: "success",
     });
+
+    if (redis) {
+      await redis.set(cacheKey, parsed, { ex: 3600 }); // 1 hour cache
+    }
 
     return success(res, 200, parsed, "Project idea generated");
   } catch (err) {
@@ -137,6 +152,14 @@ export const generateTasks = asyncHandler(async (req, res) => {
     return failure(res, 403, "Not authorized to access this project");
   }
 
+  const cacheKey = `ai:tasks:${projectId}`;
+  if (redis) {
+    const cached = await redis.get(cacheKey);
+    if (cached) {
+      return success(res, 200, cached, "Generated (cached)");
+    }
+  }
+
   const prompt = buildTaskBreakdownPrompt(
     project.title,
     project.description,
@@ -170,6 +193,10 @@ export const generateTasks = asyncHandler(async (req, res) => {
       rawResponse: raw,
       status: "success",
     });
+
+    if (redis) {
+      await redis.set(cacheKey, parsed, { ex: 3600 });
+    }
 
     return success(res, 200, parsed, "Task breakdown generated");
   } catch (err) {

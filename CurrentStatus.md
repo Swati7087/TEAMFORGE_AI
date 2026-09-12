@@ -819,3 +819,31 @@ Next thing to do - few things to change ... first the placement of invite featur
 
 
 
+GOOGLE AUTH - 
+
+Is session mein Google OAuth, Vercel routing, aur CI pe kaam hua.
+
+Google OAuth
+
+callbackURL pehle relative tha: /api/auth/google/callback
+Absolute + env-aware banaya: {BACKEND_URL}/api/auth/google/callback (local → localhost, production → Render)
+Google 400 mostly redirect URI mismatch tha — Console URI aur BACKEND_URL match hone chahiye
+FRONTEND_URL comma-separated list thi, isliye success redirect invalid URL ban raha tha
+primaryFrontendUrl add kiya (pehli origin) — /oauth-success aur fail hone par /login isi se jaate hain
+Vercel 404 (NOT_FOUND)
+
+OAuth ke baad /oauth-success pe Vercel file dhoondh raha tha, React route nahi
+frontend/vercel.json SPA rewrite ke saath add kiya, commit + push ho gaya (98a21b5)
+CI
+
+.github/workflows/ci.yml repo root pe
+Backend: npm install + src/ ki JS files pe node --check
+Frontend: npm install + npm run build
+Ab bhi tumhe karna hai (code ke bahar)
+
+Local/Render pe GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, BACKEND_URL set
+Google Console mein exact redirect URI
+Vercel Root Directory = frontend
+
+
+

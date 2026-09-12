@@ -20,6 +20,7 @@
 
 import express from "express";
 import { protect } from "../middlewares/auth.middleware.js";
+import { rateLimitAI } from "../middlewares/rateLimiter.middleware.js";
 import {
   generateProject,
   generateTasks,
@@ -46,23 +47,25 @@ const router = express.Router();
 
 router.use(protect);
 
-router.post("/generate-project", generateProject);
-router.post("/generate-tasks", generateTasks);
-router.post("/productivity-report", generateProductivityReport);
-router.post("/contribution-analysis", generateContributionAnalysis);
-router.post("/match-team", matchTeam);
-router.post("/skill-gap", analyzeSkillGap);
-router.post("/meeting-summary", summarizeMeeting);
-router.get("/meeting-history", getMeetingHistory);
-router.post("/generate-readme", generateReadme);
-router.post("/bottleneck-detect", detectBottlenecks);
-router.post("/deadline-predict", predictDeadline);
-router.post("/risk-analysis", analyzeProjectRisk);
-router.post("/conflict-resolve", resolveConflict);
-router.post("/duplicate-work", detectDuplicateWork);
-router.post("/sprint-plan", planSprints);
+// AI-generation routes — rate limited (these hit Gemini)
+router.post("/generate-project", rateLimitAI, generateProject);
+router.post("/generate-tasks", rateLimitAI, generateTasks);
+router.post("/productivity-report", rateLimitAI, generateProductivityReport);
+router.post("/contribution-analysis", rateLimitAI, generateContributionAnalysis);
+router.post("/match-team", rateLimitAI, matchTeam);
+router.post("/skill-gap", rateLimitAI, analyzeSkillGap);
+router.post("/meeting-summary", rateLimitAI, summarizeMeeting);
+router.post("/generate-readme", rateLimitAI, generateReadme);
+router.post("/bottleneck-detect", rateLimitAI, detectBottlenecks);
+router.post("/deadline-predict", rateLimitAI, predictDeadline);
+router.post("/risk-analysis", rateLimitAI, analyzeProjectRisk);
+router.post("/conflict-resolve", rateLimitAI, resolveConflict);
+router.post("/duplicate-work", rateLimitAI, detectDuplicateWork);
+router.post("/sprint-plan", rateLimitAI, planSprints);
+router.post("/manager/chat", rateLimitAI, chatWithManager);
 
-router.post("/manager/chat", chatWithManager);
+// Read-only routes — NOT rate limited (no Gemini call)
+router.get("/meeting-history", getMeetingHistory);
 router.get("/manager/suggestions", getSuggestedPrompts);
 
 export default router;
